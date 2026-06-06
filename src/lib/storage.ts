@@ -63,3 +63,42 @@ export function saveRecipes(recipes: Recipe[]): void {
   if (typeof window === 'undefined') return
   localStorage.setItem(RECIPES_STORAGE_KEY, JSON.stringify(recipes))
 }
+
+const preferenceListeners = new Set<() => void>()
+const recipeListeners = new Set<() => void>()
+
+export function subscribePreferences(onStoreChange: () => void): () => void {
+  preferenceListeners.add(onStoreChange)
+  return () => preferenceListeners.delete(onStoreChange)
+}
+
+export function subscribeRecipes(onStoreChange: () => void): () => void {
+  recipeListeners.add(onStoreChange)
+  return () => recipeListeners.delete(onStoreChange)
+}
+
+export function getPreferencesSnapshot(): UserPreferences {
+  return loadPreferences()
+}
+
+export function getServerPreferencesSnapshot(): UserPreferences {
+  return defaultPreferences
+}
+
+export function getRecipesSnapshot(): Recipe[] {
+  return loadRecipes()
+}
+
+export function getServerRecipesSnapshot(): Recipe[] {
+  return []
+}
+
+export function updatePreferences(preferences: UserPreferences): void {
+  savePreferences(preferences)
+  preferenceListeners.forEach((listener) => listener())
+}
+
+export function updateRecipes(recipes: Recipe[]): void {
+  saveRecipes(recipes)
+  recipeListeners.forEach((listener) => listener())
+}

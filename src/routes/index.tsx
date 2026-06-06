@@ -1,41 +1,67 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useEffect, useState } from 'react'
+import { useReducer, useSyncExternalStore } from 'react'
 import { RecipeCard } from '../components/RecipeCard'
 import { RecipeForm } from '../components/RecipeForm'
 import { generateRecipes } from '../lib/api'
 import {
-  defaultPreferences,
-  loadPreferences,
-  loadRecipes,
-  savePreferences,
-  saveRecipes,
+  getPreferencesSnapshot,
+  getRecipesSnapshot,
+  getServerPreferencesSnapshot,
+  getServerRecipesSnapshot,
+  subscribePreferences,
+  subscribeRecipes,
+  updatePreferences,
+  updateRecipes,
 } from '../lib/storage'
-import type { Recipe, UserPreferences } from '../types/recipe'
 
 export const Route = createFileRoute('/')({ component: Home })
 
+type HomeState = {
+  isLoading: boolean
+  error: string | null
+}
+
+type HomeAction =
+  | { type: 'generateStart' }
+  | { type: 'generateSuccess' }
+  | { type: 'generateError'; message: string }
+
+const initialHomeState: HomeState = {
+  isLoading: false,
+  error: null,
+}
+
+function homeReducer(state: HomeState, action: HomeAction): HomeState {
+  switch (action.type) {
+    case 'generateStart':
+      return { isLoading: true, error: null }
+    case 'generateSuccess':
+      return { isLoading: false, error: null }
+    case 'generateError':
+      return { isLoading: false, error: action.message }
+    default:
+      return state
+  }
+}
+
 function Home() {
-  const [preferences, setPreferences] =
-    useState<UserPreferences>(defaultPreferences)
-  const [recipes, setRecipes] = useState<Recipe[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [isHydrated, setIsHydrated] = useState(false)
-
-  useEffect(() => {
-    setPreferences(loadPreferences())
-    setRecipes(loadRecipes())
-    setIsHydrated(true)
-  }, [])
-
-  useEffect(() => {
-    if (!isHydrated) return
-    savePreferences(preferences)
-  }, [preferences, isHydrated])
+  const preferences = useSyncExternalStore(
+    subscribePreferences,
+    getPreferencesSnapshot,
+    getServerPreferencesSnapshot,
+  )
+  const recipes = useSyncExternalStore(
+    subscribeRecipes,
+    getRecipesSnapshot,
+    getServerRecipesSnapshot,
+  )
+  const [{ isLoading, error }, dispatch] = useReducer(
+    homeReducer,
+    initialHomeState,
+  )
 
   async function handleGenerate() {
-    setIsLoading(true)
-    setError(null)
+    dispatch({ type: 'generateStart' })
 
     try {
       const response = await generateRecipes({
@@ -50,16 +76,15 @@ function Home() {
           preferences.equipment.length > 0 ? preferences.equipment : undefined,
       })
 
-      setRecipes(response.recipes)
-      saveRecipes(response.recipes)
+      updateRecipes(response.recipes)
+      dispatch({ type: 'generateSuccess' })
     } catch (err) {
-      setRecipes([])
-      saveRecipes([])
-      setError(
-        err instanceof Error ? err.message : 'Something went wrong. Try again.',
-      )
-    } finally {
-      setIsLoading(false)
+      updateRecipes([])
+      dispatch({
+        type: 'generateError',
+        message:
+          err instanceof Error ? err.message : 'Something went wrong. Try again.',
+      })
     }
   }
 
@@ -81,7 +106,7 @@ function Home() {
           <h2>What are you cooking with?</h2>
           <RecipeForm
             preferences={preferences}
-            onChange={setPreferences}
+            onChange={updatePreferences}
             onSubmit={handleGenerate}
             isLoading={isLoading}
           />
