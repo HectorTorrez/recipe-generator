@@ -8,7 +8,7 @@
     "binding": "AI"
   },
   "vars": {
-    "ALLOWED_ORIGINS": "http://localhost:3000,https://recipe-generator-web.hectorburuca.workers.dev"
+    "ALLOWED_ORIGINS": "http://localhost:3000,https://recipe-generator-web.torrezhectorb.workers.dev"
   },
   "observability": {
     "enabled": true

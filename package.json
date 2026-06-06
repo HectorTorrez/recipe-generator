@@ -14,9 +14,9 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "deploy:web": "pnpm run build && wrangler deploy",
-    "deploy:api": "pnpm --filter @recipe-generator/api deploy",
-    "deploy": "pnpm run deploy:api && pnpm run deploy:web"
+    "deploy:web": "pnpm run build && pnpm exec wrangler deploy",
+    "deploy:api": "pnpm --filter @recipe-generator/api run deploy",
+    "deploy:all": "pnpm run deploy:api && pnpm run deploy:web"
   },
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.26.0",

@@ -5,6 +5,6 @@
   "compatibility_flags": ["nodejs_compat"],
   "main": "@tanstack/react-start/server-entry",
   "vars": {
-    "VITE_API_URL": "https://recipe-generator-api.hectorburuca.workers.dev"
+    "VITE_API_URL": "https://recipe-generator-api.torrezhectorb.workers.dev"
   }
 }
