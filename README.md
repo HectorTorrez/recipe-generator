@@ -6,22 +6,22 @@ Built for a technical interview challenge, adapted from a to-do list brief into 
 
 ## Live demo
 
-Production URLs (after `pnpm deploy`):
+Production URLs (after `pnpm deploy:all`):
 
 | Service | URL |
 |---------|-----|
-| **Frontend** | https://recipe-generator-web.hectorburuca.workers.dev |
-| **API health** | https://recipe-generator-api.hectorburuca.workers.dev/health |
+| **Frontend** | https://recipe-generator-web.torrezhectorb.workers.dev |
+| **API health** | https://recipe-generator-api.torrezhectorb.workers.dev/health |
 
-> **First-time deploy:** Run `pnpm exec wrangler login`, then `pnpm deploy`. Wrangler configs are pre-wired with `VITE_API_URL` and `ALLOWED_ORIGINS` for the URLs above. Replace `hectorburuca` with your Cloudflare Workers subdomain if different.
+> **First-time deploy:** Run `pnpm exec wrangler login`, then `pnpm deploy:all`.
 
 ## Submission
 
 | Deliverable | Link |
 |-------------|------|
 | **GitHub** | https://github.com/HectorTorrez/recipe-generator |
-| **Frontend** | https://recipe-generator-web.hectorburuca.workers.dev |
-| **API health** | https://recipe-generator-api.hectorburuca.workers.dev/health |
+| **Frontend** | https://recipe-generator-web.torrezhectorb.workers.dev |
+| **API health** | https://recipe-generator-api.torrezhectorb.workers.dev/health |
 
 ## Architecture
 
@@ -112,13 +112,9 @@ The Vite dev server proxies `/api/*` to the API worker, so no CORS setup is need
 
 ### Environment
 
-Copy `.env.example` to `.env` if you need a custom API URL at build time:
+For local dev with the Vite proxy, you can leave `VITE_API_URL` unset.
 
-```bash
-VITE_API_URL=http://localhost:8787
-```
-
-For local dev with the proxy, you can leave `VITE_API_URL` unset.
+**Production builds** require `VITE_API_URL` at build time (not just in `wrangler.jsonc` vars). This is set in [`.env.production`](.env.production) and baked into the client bundle when you run `pnpm run build`.
 
 ### Deploy
 
@@ -130,7 +126,7 @@ pnpm deploy:api
 
 Note the deployed URL (e.g. `https://recipe-generator-api.<account>.workers.dev`).
 
-2. Update CORS in `api/wrangler.jsonc` and `VITE_API_URL` in `wrangler.jsonc` if your Workers subdomain differs from `hectorburuca`.
+2. Update CORS in `api/wrangler.jsonc` and `VITE_API_URL` in `wrangler.jsonc` if your Workers subdomain differs from `torrezhectorb`.
 
 3. Deploy the frontend:
 
@@ -201,4 +197,4 @@ Returns worker status and model name.
 | `pnpm build` | Build frontend for production |
 | `pnpm deploy:api` | Deploy API worker |
 | `pnpm deploy:web` | Build and deploy frontend |
-| `pnpm deploy` | Deploy both |
+| `pnpm deploy:all` | Deploy both API and frontend |

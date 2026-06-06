@@ -14,9 +14,10 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "deploy:web": "pnpm run build && wrangler deploy",
-    "deploy:api": "pnpm --filter @recipe-generator/api deploy",
-    "deploy": "pnpm run deploy:api && pnpm run deploy:web"
+    "deploy:web": "pnpm run build && pnpm exec wrangler deploy",
+    "deploy:api": "pnpm --filter @recipe-generator/api run deploy",
+    "deploy:all": "pnpm run deploy:api && pnpm run deploy:web",
+    "doctor": "npx react-doctor@latest"
   },
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.26.0",
@@ -35,6 +36,7 @@
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^6.0.1",
     "jsdom": "^28.1.0",
+    "react-doctor": "^0.4.0",
     "typescript": "^6.0.2",
     "vite": "^8.0.0",
     "vitest": "^4.1.5",

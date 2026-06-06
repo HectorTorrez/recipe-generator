@@ -98,13 +98,7 @@ export function RecipeForm({
   }
 
   return (
-    <form
-      className="recipe-form"
-      onSubmit={(event) => {
-        event.preventDefault()
-        onSubmit()
-      }}
-    >
+    <form className="recipe-form">
       <section className="form-section">
         <label className="form-label" htmlFor="ingredient-input">
           Your ingredients
@@ -227,9 +221,10 @@ export function RecipeForm({
       )}
 
       <button
-        type="submit"
+        type="button"
         className="btn btn-primary"
         disabled={isLoading || preferences.ingredients.length === 0}
+        onClick={onSubmit}
       >
         {isLoading ? 'Generating recipes…' : 'Generate recipes'}
       </button>

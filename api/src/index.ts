@@ -149,9 +149,10 @@ function validateRequest(body: unknown): RecipeRequest | null {
     return null
   }
 
-  const ingredients = data.ingredients
-    .map((item) => (typeof item === 'string' ? item.trim() : ''))
-    .filter(Boolean)
+  const ingredients = data.ingredients.flatMap((item) => {
+    const trimmed = typeof item === 'string' ? item.trim() : ''
+    return trimmed ? [trimmed] : []
+  })
 
   if (ingredients.length === 0) return null
 
