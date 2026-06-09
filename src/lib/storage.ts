@@ -64,8 +64,19 @@ export function saveRecipes(recipes: Recipe[]): void {
   localStorage.setItem(RECIPES_STORAGE_KEY, JSON.stringify(recipes))
 }
 
+const EMPTY_RECIPES: Recipe[] = []
+
 const preferenceListeners = new Set<() => void>()
 const recipeListeners = new Set<() => void>()
+
+let preferencesSnapshot: UserPreferences = defaultPreferences
+let recipesSnapshot: Recipe[] = EMPTY_RECIPES
+
+if (typeof window !== 'undefined') {
+  preferencesSnapshot = loadPreferences()
+  const loaded = loadRecipes()
+  recipesSnapshot = loaded.length === 0 ? EMPTY_RECIPES : loaded
+}
 
 export function subscribePreferences(onStoreChange: () => void): () => void {
   preferenceListeners.add(onStoreChange)
@@ -78,7 +89,7 @@ export function subscribeRecipes(onStoreChange: () => void): () => void {
 }
 
 export function getPreferencesSnapshot(): UserPreferences {
-  return loadPreferences()
+  return preferencesSnapshot
 }
 
 export function getServerPreferencesSnapshot(): UserPreferences {
@@ -86,19 +97,21 @@ export function getServerPreferencesSnapshot(): UserPreferences {
 }
 
 export function getRecipesSnapshot(): Recipe[] {
-  return loadRecipes()
+  return recipesSnapshot
 }
 
 export function getServerRecipesSnapshot(): Recipe[] {
-  return []
+  return EMPTY_RECIPES
 }
 
 export function updatePreferences(preferences: UserPreferences): void {
   savePreferences(preferences)
+  preferencesSnapshot = preferences
   preferenceListeners.forEach((listener) => listener())
 }
 
 export function updateRecipes(recipes: Recipe[]): void {
   saveRecipes(recipes)
+  recipesSnapshot = recipes.length === 0 ? EMPTY_RECIPES : recipes
   recipeListeners.forEach((listener) => listener())
 }
