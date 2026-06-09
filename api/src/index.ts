@@ -1,12 +1,19 @@
+import { createAuth } from './auth'
 import { buildRecipePrompt } from './prompt'
+import { listHistory, migrateGuestHistory, saveHistoryEntry } from './history'
 import { recipesToMarkdown } from './recipeMarkdown'
+import { getSession, requireUserId } from './session'
+import type { GuestHistoryEntry } from './history'
 import type { RecipeRequest, RecipeResponse } from './types'
 
 const MODEL = '@cf/meta/llama-3.1-8b-instruct'
 
 type Env = {
   AI: Ai
+  DB: D1Database
   ALLOWED_ORIGINS: string
+  BETTER_AUTH_SECRET: string
+  BETTER_AUTH_URL: string
 }
 
 function getCorsHeaders(request: Request, env: Env): HeadersInit {
@@ -17,7 +24,9 @@ function getCorsHeaders(request: Request, env: Env): HeadersInit {
   return {
     'Access-Control-Allow-Origin': allowOrigin,
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Credentials': 'true',
+    'Access-Control-Expose-Headers': 'set-auth-token',
     'Access-Control-Max-Age': '86400',
   }
 }
@@ -102,7 +111,6 @@ function parseRecipeResponse(
       ingredients,
       instructions,
       whyRecommended,
-      missingIngredients,
     } = recipe as Record<string, unknown>
 
     if (typeof name !== 'string' || !name.trim()) {
@@ -147,9 +155,6 @@ function parseRecipeResponse(
       ingredients,
       instructions,
       whyRecommended: whyRecommended.trim(),
-      missingIngredients: isStringArray(missingIngredients)
-        ? missingIngredients
-        : [],
     }
   })
 
@@ -197,6 +202,98 @@ function validateRequest(body: unknown): RecipeRequest | null {
   }
 }
 
+function validateHistorySaveBody(body: unknown): {
+  request: RecipeRequest
+  recipes: RecipeResponse['recipes']
+} | null {
+  if (!body || typeof body !== 'object') return null
+
+  const data = body as Record<string, unknown>
+  const request = validateRequest(data.request)
+  const recipes = data.recipes
+
+  if (!request) return null
+  if (!Array.isArray(recipes) || recipes.length === 0) return null
+
+  const validRecipes = recipes.every(
+    (recipe) =>
+      recipe &&
+      typeof recipe === 'object' &&
+      typeof (recipe as { name?: unknown }).name === 'string',
+  )
+
+  if (!validRecipes) return null
+
+  return {
+    request,
+    recipes: recipes as RecipeResponse['recipes'],
+  }
+}
+
+function validateMigrateBody(body: unknown): GuestHistoryEntry[] | null {
+  if (!body || typeof body !== 'object') return null
+
+  const entries = (body as { entries?: unknown }).entries
+  if (!Array.isArray(entries)) return null
+
+  const validEntries: GuestHistoryEntry[] = []
+
+  for (const entry of entries) {
+    if (!entry || typeof entry !== 'object') continue
+
+    const data = entry as Record<string, unknown>
+    const request = validateRequest(data.request)
+    const recipes = data.recipes
+
+    if (
+      typeof data.id !== 'string' ||
+      typeof data.createdAt !== 'number' ||
+      !request ||
+      !Array.isArray(recipes) ||
+      recipes.length === 0
+    ) {
+      continue
+    }
+
+    validEntries.push({
+      id: data.id,
+      createdAt: data.createdAt,
+      request,
+      recipes: recipes as RecipeResponse['recipes'],
+    })
+  }
+
+  return validEntries
+}
+
+async function handleAuthRequest(
+  request: Request,
+  env: Env,
+): Promise<Response> {
+  const auth = createAuth(env)
+  const headers = new Headers(request.headers)
+  const authRequest = new Request(request.url, {
+    method: request.method,
+    headers,
+    body: request.body,
+    redirect: request.redirect,
+  })
+
+  const response = await auth.handler(authRequest)
+  const responseHeaders = new Headers(response.headers)
+  const corsHeaders = getCorsHeaders(request, env)
+
+  for (const [key, value] of Object.entries(corsHeaders)) {
+    responseHeaders.set(key, value)
+  }
+
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: responseHeaders,
+  })
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const corsHeaders = getCorsHeaders(request, env)
@@ -206,8 +303,78 @@ export default {
       return new Response(null, { status: 204, headers: corsHeaders })
     }
 
+    if (url.pathname.startsWith('/api/auth')) {
+      return handleAuthRequest(request, env)
+    }
+
     if (request.method === 'GET' && url.pathname === '/health') {
       return jsonResponse({ status: 'ok', model: MODEL }, request, env)
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/history') {
+      const session = await getSession(request, env)
+      const userId = requireUserId(session)
+
+      if (!userId) {
+        return jsonResponse({ error: 'Unauthorized' }, request, env, 401)
+      }
+
+      const entries = await listHistory(env.DB, userId)
+      return jsonResponse({ entries }, request, env)
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/history') {
+      const session = await getSession(request, env)
+      const userId = requireUserId(session)
+
+      if (!userId) {
+        return jsonResponse({ error: 'Unauthorized' }, request, env, 401)
+      }
+
+      let body: unknown
+      try {
+        body = await request.json()
+      } catch {
+        return jsonResponse({ error: 'Invalid JSON body' }, request, env, 400)
+      }
+
+      const payload = validateHistorySaveBody(body)
+      if (!payload) {
+        return jsonResponse({ error: 'Invalid history payload' }, request, env, 400)
+      }
+
+      const entry = await saveHistoryEntry(
+        env.DB,
+        userId,
+        payload.request,
+        payload.recipes,
+      )
+
+      return jsonResponse({ entry }, request, env, 201)
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/history/migrate') {
+      const session = await getSession(request, env)
+      const userId = requireUserId(session)
+
+      if (!userId) {
+        return jsonResponse({ error: 'Unauthorized' }, request, env, 401)
+      }
+
+      let body: unknown
+      try {
+        body = await request.json()
+      } catch {
+        return jsonResponse({ error: 'Invalid JSON body' }, request, env, 400)
+      }
+
+      const entries = validateMigrateBody(body)
+      if (!entries) {
+        return jsonResponse({ error: 'Invalid migrate payload' }, request, env, 400)
+      }
+
+      const result = await migrateGuestHistory(env.DB, userId, entries)
+      return jsonResponse(result, request, env)
     }
 
     if (request.method === 'POST' && url.pathname === '/api/recipes') {

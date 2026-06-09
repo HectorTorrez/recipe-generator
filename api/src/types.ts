@@ -24,9 +24,22 @@ export type Recipe = {
   ingredients: string[]
   instructions: string[]
   whyRecommended: string
-  missingIngredients: string[]
 }
 
 export type RecipeResponse = {
+  recipes: Recipe[]
+}
+
+export type HistoryEntry = {
+  id: string
+  createdAt: number
+  request: RecipeRequest
+  recipes: Recipe[]
+}
+
+export type GuestHistoryEntry = {
+  id: string
+  createdAt: number
+  request: RecipeRequest
   recipes: Recipe[]
 }

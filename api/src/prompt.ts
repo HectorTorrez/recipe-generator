@@ -30,7 +30,6 @@ ${constraints}
 Rules:
 - Prioritize recipes that use as many provided ingredients as possible.
 - Every recipe MUST be completable within ${cookingTimeMinutes} minutes total (prep + cook).
-- List any extra ingredients not provided by the user in missingIngredients.
 - Adapt complexity to the skill level when specified.
 - Respect all dietary preferences strictly.
 - Only suggest recipes that can be made with the listed equipment when equipment is specified.
@@ -44,8 +43,7 @@ Respond with ONLY valid JSON matching this schema (no markdown, no extra text):
       "estimatedTimeMinutes": number,
       "ingredients": ["string"],
       "instructions": ["string (step-by-step)"],
-      "whyRecommended": "string (explain ingredient usage and time fit)",
-      "missingIngredients": ["string"]
+      "whyRecommended": "string (explain ingredient usage and time fit)"
     }
   ]
 }`

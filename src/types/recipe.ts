@@ -24,7 +24,6 @@ export type Recipe = {
   ingredients: string[]
   instructions: string[]
   whyRecommended: string
-  missingIngredients: string[]
 }
 
 export type RecipeResponse = {
@@ -37,4 +36,18 @@ export type UserPreferences = {
   difficulty: Difficulty
   dietaryPreferences: DietaryPreference[]
   equipment: Equipment[]
+}
+
+export type HistoryEntry = {
+  id: string
+  createdAt: number
+  request: RecipeRequest
+  recipes: Recipe[]
+}
+
+export type GuestHistoryEntry = {
+  id: string
+  createdAt: number
+  request: RecipeRequest
+  recipes: Recipe[]
 }

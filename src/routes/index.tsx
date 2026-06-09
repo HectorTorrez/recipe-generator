@@ -1,8 +1,13 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useReducer, useState, useSyncExternalStore } from 'react'
+import { AuthHeader } from '../components/AuthHeader'
 import { RecipeCard } from '../components/RecipeCard'
 import { RecipeForm } from '../components/RecipeForm'
+import { useGuestMigration } from '../hooks/useGuestMigration'
+import { authClient } from '../lib/auth-client'
 import { generateRecipes } from '../lib/api'
+import { appendGuestHistoryEntry } from '../lib/guest-history'
+import { saveHistoryEntry } from '../lib/history-api'
 import { recipesToMarkdown } from '../lib/recipeMarkdown'
 import {
   getPreferencesSnapshot,
@@ -14,6 +19,7 @@ import {
   updatePreferences,
   updateRecipes,
 } from '../lib/storage'
+import type { RecipeRequest } from '../types/recipe'
 
 export const Route = createFileRoute('/')({ component: Home })
 
@@ -45,7 +51,22 @@ function homeReducer(state: HomeState, action: HomeAction): HomeState {
   }
 }
 
+function buildRecipeRequest(preferences: ReturnType<typeof getPreferencesSnapshot>): RecipeRequest {
+  return {
+    ingredients: preferences.ingredients,
+    cookingTimeMinutes: preferences.cookingTimeMinutes,
+    difficulty: preferences.difficulty,
+    dietaryPreferences:
+      preferences.dietaryPreferences.length > 0
+        ? preferences.dietaryPreferences
+        : undefined,
+    equipment:
+      preferences.equipment.length > 0 ? preferences.equipment : undefined,
+  }
+}
+
 function Home() {
+  const { data: session } = authClient.useSession()
   const preferences = useSyncExternalStore(
     subscribePreferences,
     getPreferencesSnapshot,
@@ -62,6 +83,8 @@ function Home() {
   )
   const [copiedAll, setCopiedAll] = useState(false)
 
+  useGuestMigration()
+
   async function handleCopyAll() {
     if (recipes.length === 0) return
 
@@ -77,20 +100,19 @@ function Home() {
   async function handleGenerate() {
     dispatch({ type: 'generateStart' })
 
+    const request = buildRecipeRequest(preferences)
+
     try {
-      const response = await generateRecipes({
-        ingredients: preferences.ingredients,
-        cookingTimeMinutes: preferences.cookingTimeMinutes,
-        difficulty: preferences.difficulty,
-        dietaryPreferences:
-          preferences.dietaryPreferences.length > 0
-            ? preferences.dietaryPreferences
-            : undefined,
-        equipment:
-          preferences.equipment.length > 0 ? preferences.equipment : undefined,
-      })
+      const response = await generateRecipes(request)
 
       updateRecipes(response.recipes)
+
+      if (session?.user) {
+        await saveHistoryEntry(request, response.recipes)
+      } else {
+        appendGuestHistoryEntry(request, response.recipes)
+      }
+
       dispatch({ type: 'generateSuccess' })
     } catch (err) {
       updateRecipes([])
@@ -106,6 +128,7 @@ function Home() {
     <div className="app">
       <header className="app-header">
         <div className="app-header__content">
+          <AuthHeader />
           <p className="app-header__eyebrow">AI-powered meal planning</p>
           <h1>Smart Recipe Generator</h1>
           <p className="app-header__subtitle">
@@ -174,7 +197,10 @@ function Home() {
       </main>
 
       <footer className="app-footer">
-        <p>Preferences are saved locally in your browser.</p>
+        <p>
+          Preferences are saved locally in your browser. Sign in to sync your
+          recipe history across devices.
+        </p>
       </footer>
     </div>
   )

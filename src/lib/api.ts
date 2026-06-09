@@ -1,11 +1,10 @@
 import type { RecipeRequest, RecipeResponse } from '../types/recipe'
-
-const API_BASE = import.meta.env.VITE_API_URL?.replace(/\/$/, '') ?? ''
+import { getApiBase } from './auth-token'
 
 export async function generateRecipes(
   request: RecipeRequest,
 ): Promise<RecipeResponse> {
-  const response = await fetch(`${API_BASE}/api/recipes`, {
+  const response = await fetch(`${getApiBase()}/api/recipes`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(request),

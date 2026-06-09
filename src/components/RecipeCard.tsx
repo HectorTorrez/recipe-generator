@@ -55,17 +55,6 @@ export function RecipeCard({ recipe, index }: RecipeCardProps) {
         </ul>
       </div>
 
-      {recipe.missingIngredients.length > 0 && (
-        <div className="recipe-card__section recipe-card__missing">
-          <h4>Missing ingredients</h4>
-          <ul>
-            {recipe.missingIngredients.map((ingredient) => (
-              <li key={ingredient}>{ingredient}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-
       <div className="recipe-card__section">
         <h4>Instructions</h4>
         <ol>

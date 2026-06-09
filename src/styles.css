@@ -10,7 +10,6 @@
   --color-border: #e4ddd3;
   --color-error-bg: #fdecea;
   --color-error-text: #8b2e2e;
-  --color-missing-bg: #fff8e8;
   --shadow-sm: 0 1px 3px rgba(31, 26, 20, 0.08);
   --shadow-md: 0 8px 24px rgba(31, 26, 20, 0.1);
   --radius-sm: 8px;
@@ -435,12 +434,6 @@ input {
   margin-top: 0.35rem;
 }
 
-.recipe-card__missing {
-  padding: 0.75rem;
-  border-radius: var(--radius-sm);
-  background: var(--color-missing-bg);
-}
-
 .app-footer {
   padding: 1.5rem;
   text-align: center;
@@ -450,4 +443,166 @@ input {
 
 .app-footer p {
   margin: 0;
+}
+
+.auth-header {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1.5rem;
+}
+
+.auth-header__guest,
+.auth-header__signed-in {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.auth-header__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.auth-header__user {
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}
+
+.auth-header__status {
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}
+
+.auth-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(31, 26, 20, 0.45);
+}
+
+.auth-modal {
+  width: min(100%, 420px);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: 1.5rem;
+}
+
+.auth-modal__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.auth-modal__header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.auth-modal__close {
+  border: none;
+  background: transparent;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--color-text-muted);
+}
+
+.auth-modal__hint,
+.auth-modal__switch {
+  margin: 0.75rem 0 0;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}
+
+.auth-modal__link {
+  border: none;
+  background: transparent;
+  padding: 0;
+  color: var(--color-primary);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.auth-form input {
+  width: 100%;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-muted);
+}
+
+.auth-form__error {
+  margin: 0;
+  padding: 0.75rem;
+  border-radius: var(--radius-sm);
+  background: var(--color-error-bg);
+  color: var(--color-error-text);
+  font-size: 0.9rem;
+}
+
+.app-main--single {
+  grid-template-columns: 1fr;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.history-item {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.history-item__toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+  border: none;
+  background: var(--color-surface-muted);
+  text-align: left;
+  cursor: pointer;
+}
+
+.history-item__toggle strong {
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.history-item__summary {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}
+
+.history-item__recipes {
+  padding: 1rem;
 }

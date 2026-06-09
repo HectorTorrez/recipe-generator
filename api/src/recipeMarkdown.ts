@@ -15,14 +15,6 @@ export function recipeToMarkdown(recipe: Recipe): string {
     ...recipe.ingredients.map((ingredient) => `- ${ingredient}`),
   ]
 
-  if (recipe.missingIngredients.length > 0) {
-    lines.push(
-      '',
-      '## Missing ingredients',
-      ...recipe.missingIngredients.map((ingredient) => `- ${ingredient}`),
-    )
-  }
-
   lines.push(
     '',
     '## Instructions',
