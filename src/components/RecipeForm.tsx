@@ -101,10 +101,10 @@ export function RecipeForm({
     <form className="recipe-form">
       <section className="form-section">
         <label className="form-label" htmlFor="ingredient-input">
-          Your ingredients
+          Ingredients
         </label>
         <p className="form-hint">
-          Add what you have on hand. We will suggest recipes that use them.
+          Whatever's in the fridge, pantry, or counter — add it here.
         </p>
 
         <div className="ingredient-input-row">
@@ -142,7 +142,7 @@ export function RecipeForm({
             ))}
           </ul>
         ) : (
-          <p className="empty-state">No ingredients added yet.</p>
+          <p className="empty-state">Nothing added yet.</p>
         )}
       </section>
 
@@ -226,7 +226,7 @@ export function RecipeForm({
         disabled={isLoading || preferences.ingredients.length === 0}
         onClick={onSubmit}
       >
-        {isLoading ? 'Generating recipes…' : 'Generate recipes'}
+        {isLoading ? 'Generating…' : 'Generate recipes'}
       </button>
     </form>
   )

@@ -129,18 +129,22 @@ function Home() {
       <header className="app-header">
         <div className="app-header__content">
           <AuthHeader />
-          <p className="app-header__eyebrow">AI-powered meal planning</p>
-          <h1>Smart Recipe Generator</h1>
+          <div className="app-header__brand">
+            <span className="app-header__mark">Pantry</span>
+            <p className="app-header__eyebrow">From fridge to table</p>
+          </div>
+          <h1>Cook what's already in your kitchen</h1>
           <p className="app-header__subtitle">
-            Tell us what you have and how much time you have. We will suggest
-            recipes that fit your kitchen and schedule.
+            List what you have, set your time, and get recipes built around
+            real ingredients — not a shopping list.
           </p>
         </div>
       </header>
 
       <main className="app-main">
         <section className="panel panel--form">
-          <h2>What are you cooking with?</h2>
+          <span className="panel__label">Prep station</span>
+          <h2>What's on the counter?</h2>
           <RecipeForm
             preferences={preferences}
             onChange={updatePreferences}
@@ -151,16 +155,16 @@ function Home() {
 
         <section className="panel panel--results">
           <div className="results-header">
-            <h2>Recipe recommendations</h2>
+            <h2>Your recipes</h2>
             {recipes.length > 0 && (
               <div className="results-header__actions">
-                <span className="results-count">{recipes.length} recipes</span>
+                <span className="results-count">{recipes.length} ready</span>
                 <button
                   type="button"
                   className="btn btn-secondary btn-sm"
                   onClick={handleCopyAll}
                 >
-                  {copiedAll ? 'Copied!' : 'Copy all'}
+                  {copiedAll ? 'Copied' : 'Copy all'}
                 </button>
               </div>
             )}
@@ -169,7 +173,7 @@ function Home() {
           {isLoading && (
             <div className="status-message status-message--loading">
               <div className="spinner" aria-hidden="true" />
-              <p>Our chef AI is crafting recipes for you…</p>
+              <p>Working through combinations…</p>
             </div>
           )}
 
@@ -182,15 +186,17 @@ function Home() {
           {!isLoading && !error && recipes.length === 0 && (
             <div className="status-message">
               <p>
-                Add your ingredients and click Generate recipes to get
-                personalized suggestions.
+                Add at least one ingredient, then generate recipes to see
+                suggestions here.
               </p>
             </div>
           )}
 
-          <div className="recipe-grid">
+          <div
+            className={`recipe-grid${recipes.length > 0 && !isLoading ? ' recipe-grid--animated' : ''}`}
+          >
             {recipes.map((recipe, index) => (
-              <RecipeCard key={`${recipe.name}-${index}`} recipe={recipe} index={index} />
+              <RecipeCard key={`${recipe.name}-${index}`} recipe={recipe} />
             ))}
           </div>
         </section>
@@ -198,8 +204,8 @@ function Home() {
 
       <footer className="app-footer">
         <p>
-          Preferences are saved locally in your browser. Sign in to sync your
-          recipe history across devices.
+          Your preferences stay in this browser. Sign in to keep recipe history
+          across devices.
         </p>
       </footer>
     </div>

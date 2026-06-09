@@ -91,11 +91,13 @@ function HistoryPage() {
       <header className="app-header">
         <div className="app-header__content">
           <AuthHeader />
-          <p className="app-header__eyebrow">Saved recipes</p>
+          <div className="app-header__brand">
+            <span className="app-header__mark">Pantry</span>
+            <p className="app-header__eyebrow">Saved generations</p>
+          </div>
           <h1>Recipe history</h1>
           <p className="app-header__subtitle">
-            Your past recipe generations, synced across browsers when you are
-            signed in.
+            Every batch you've generated, kept when you're signed in.
           </p>
         </div>
       </header>
@@ -105,7 +107,7 @@ function HistoryPage() {
           <div className="results-header">
             <h2>Past generations</h2>
             <Link to="/" className="btn btn-secondary btn-sm">
-              Back to generator
+              Back to pantry
             </Link>
           </div>
 
@@ -177,7 +179,6 @@ function HistoryPage() {
                         <RecipeCard
                           key={`${entry.id}-${recipe.name}-${index}`}
                           recipe={recipe}
-                          index={index}
                         />
                       ))}
                     </div>

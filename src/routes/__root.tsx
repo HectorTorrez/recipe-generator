@@ -8,11 +8,11 @@ export const Route = createRootRoute({
     meta: [
       { charSet: 'utf-8' },
       { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { title: 'Smart Recipe Generator' },
+      { title: 'Pantry — cook what you have' },
       {
         name: 'description',
         content:
-          'AI-powered recipe recommendations based on your ingredients and available cooking time.',
+          'Turn the ingredients in your fridge into recipes that fit your time and kitchen.',
       },
     ],
     links: [{ rel: 'stylesheet', href: appCss }],
