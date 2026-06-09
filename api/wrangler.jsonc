@@ -19,7 +19,7 @@
 	],
 	"vars": {
 		"ALLOWED_ORIGINS": "http://localhost:3000,https://recipe-generator-web.torrezhectorb.workers.dev",
-		"BETTER_AUTH_URL": "http://localhost:8787"
+		"BETTER_AUTH_URL": "https://recipe-generator-api.torrezhectorb.workers.dev"
 	},
 	"observability": {
 		"enabled": true
