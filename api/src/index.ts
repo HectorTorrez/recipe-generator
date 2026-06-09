@@ -1,4 +1,5 @@
 import { buildRecipePrompt } from './prompt'
+import { recipesToMarkdown } from './recipeMarkdown'
 import type { RecipeRequest, RecipeResponse } from './types'
 
 const MODEL = '@cf/meta/llama-3.1-8b-instruct'
@@ -31,6 +32,28 @@ function jsonResponse(
     status,
     headers: getCorsHeaders(request, env),
   })
+}
+
+function markdownResponse(
+  body: string,
+  request: Request,
+  env: Env,
+  status = 200,
+): Response {
+  return new Response(body, {
+    status,
+    headers: {
+      ...getCorsHeaders(request, env),
+      'Content-Type': 'text/markdown; charset=utf-8',
+    },
+  })
+}
+
+function wantsMarkdownResponse(request: Request, url: URL): boolean {
+  if (url.searchParams.get('format') === 'markdown') return true
+
+  const accept = request.headers.get('Accept') ?? ''
+  return accept.includes('text/markdown')
 }
 
 function isStringArray(value: unknown): value is string[] {
@@ -239,6 +262,15 @@ export default {
           text,
           recipeRequest.cookingTimeMinutes,
         )
+
+        if (wantsMarkdownResponse(request, url)) {
+          return markdownResponse(
+            recipesToMarkdown(recipes.recipes),
+            request,
+            env,
+          )
+        }
+
         return jsonResponse(recipes, request, env)
       } catch (error) {
         const message =

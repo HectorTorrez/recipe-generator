@@ -277,6 +277,11 @@ input {
   background: var(--color-border);
 }
 
+.btn-sm {
+  padding: 0.45rem 0.75rem;
+  font-size: 0.875rem;
+}
+
 .results-header {
   display: flex;
   align-items: center;
@@ -287,6 +292,12 @@ input {
 
 .results-header h2 {
   margin: 0;
+}
+
+.results-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .results-count {
@@ -353,6 +364,15 @@ input {
   align-items: flex-start;
   gap: 0.75rem;
   margin-bottom: 0.75rem;
+}
+
+.recipe-card__heading {
+  flex: 1;
+  min-width: 0;
+}
+
+.recipe-card__copy {
+  flex-shrink: 0;
 }
 
 .recipe-card__badge {

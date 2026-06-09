@@ -1,8 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useReducer, useSyncExternalStore } from 'react'
+import { useReducer, useState, useSyncExternalStore } from 'react'
 import { RecipeCard } from '../components/RecipeCard'
 import { RecipeForm } from '../components/RecipeForm'
 import { generateRecipes } from '../lib/api'
+import { recipesToMarkdown } from '../lib/recipeMarkdown'
 import {
   getPreferencesSnapshot,
   getRecipesSnapshot,
@@ -59,6 +60,19 @@ function Home() {
     homeReducer,
     initialHomeState,
   )
+  const [copiedAll, setCopiedAll] = useState(false)
+
+  async function handleCopyAll() {
+    if (recipes.length === 0) return
+
+    try {
+      await navigator.clipboard.writeText(recipesToMarkdown(recipes))
+      setCopiedAll(true)
+      window.setTimeout(() => setCopiedAll(false), 2000)
+    } catch {
+      setCopiedAll(false)
+    }
+  }
 
   async function handleGenerate() {
     dispatch({ type: 'generateStart' })
@@ -116,7 +130,16 @@ function Home() {
           <div className="results-header">
             <h2>Recipe recommendations</h2>
             {recipes.length > 0 && (
-              <span className="results-count">{recipes.length} recipes</span>
+              <div className="results-header__actions">
+                <span className="results-count">{recipes.length} recipes</span>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={handleCopyAll}
+                >
+                  {copiedAll ? 'Copied!' : 'Copy all'}
+                </button>
+              </div>
             )}
           </div>
 
