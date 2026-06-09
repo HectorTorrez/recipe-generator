@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { Link, createFileRoute } from '@tanstack/react-router'
 import { useReducer, useState, useSyncExternalStore } from 'react'
 import { AuthHeader } from '../components/AuthHeader'
 import { RecipeCard } from '../components/RecipeCard'
@@ -7,7 +7,8 @@ import { useGuestMigration } from '../hooks/useGuestMigration'
 import { authClient } from '../lib/auth-client'
 import { generateRecipes } from '../lib/api'
 import { appendGuestHistoryEntry } from '../lib/guest-history'
-import { saveHistoryEntry } from '../lib/history-api'
+import { HISTORY_LIMIT_DISCLAIMER, HISTORY_LIMIT_FULL_MESSAGE } from '../lib/history-limits'
+import { HistoryLimitError, saveHistoryEntry } from '../lib/history-api'
 import { recipesToMarkdown } from '../lib/recipeMarkdown'
 import {
   getPreferencesSnapshot,
@@ -82,6 +83,7 @@ function Home() {
     initialHomeState,
   )
   const [copiedAll, setCopiedAll] = useState(false)
+  const [historyWarning, setHistoryWarning] = useState<string | null>(null)
 
   useGuestMigration()
 
@@ -99,6 +101,7 @@ function Home() {
 
   async function handleGenerate() {
     dispatch({ type: 'generateStart' })
+    setHistoryWarning(null)
 
     const request = buildRecipeRequest(preferences)
 
@@ -108,9 +111,18 @@ function Home() {
       updateRecipes(response.recipes)
 
       if (session?.user) {
-        await saveHistoryEntry(request, response.recipes)
+        try {
+          await saveHistoryEntry(request, response.recipes)
+        } catch (err) {
+          if (err instanceof HistoryLimitError) {
+            setHistoryWarning(HISTORY_LIMIT_FULL_MESSAGE)
+          }
+        }
       } else {
-        appendGuestHistoryEntry(request, response.recipes)
+        const { saved } = appendGuestHistoryEntry(request, response.recipes)
+        if (!saved) {
+          setHistoryWarning(HISTORY_LIMIT_FULL_MESSAGE)
+        }
       }
 
       dispatch({ type: 'generateSuccess' })
@@ -183,6 +195,15 @@ function Home() {
             </div>
           )}
 
+          {historyWarning && (
+            <div className="status-message" role="status">
+              <p>
+                {historyWarning}{' '}
+                <Link to="/history">Manage history</Link>
+              </p>
+            </div>
+          )}
+
           {!isLoading && !error && recipes.length === 0 && (
             <div className="status-message">
               <p>
@@ -204,8 +225,8 @@ function Home() {
 
       <footer className="app-footer">
         <p>
-          Your preferences stay in this browser. Sign in to keep recipe history
-          across devices.
+          Your preferences stay in this browser. Sign in to sync history across
+          devices. {HISTORY_LIMIT_DISCLAIMER}
         </p>
       </footer>
     </div>

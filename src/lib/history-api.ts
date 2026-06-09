@@ -1,5 +1,13 @@
+import { HISTORY_LIMIT_FULL_MESSAGE } from './history-limits'
 import type { GuestHistoryEntry, HistoryEntry, RecipeRequest, Recipe } from '../types/recipe'
 import { authHeaders, getApiBase } from './auth-token'
+
+export class HistoryLimitError extends Error {
+  constructor() {
+    super(HISTORY_LIMIT_FULL_MESSAGE)
+    this.name = 'HistoryLimitError'
+  }
+}
 
 export async function fetchHistory(): Promise<HistoryEntry[]> {
   const response = await fetch(`${getApiBase()}/api/history`, {
@@ -29,12 +37,29 @@ export async function saveHistoryEntry(
     body: JSON.stringify({ request, recipes }),
   })
 
+  if (response.status === 409) {
+    throw new HistoryLimitError()
+  }
+
   if (!response.ok) {
     throw new Error('Failed to save recipe history')
   }
 
   const data = (await response.json()) as { entry: HistoryEntry }
   return data.entry
+}
+
+export async function deleteHistoryEntry(id: string): Promise<void> {
+  const response = await fetch(`${getApiBase()}/api/history/${id}`, {
+    method: 'DELETE',
+    headers: {
+      ...authHeaders(),
+    },
+  })
+
+  if (!response.ok) {
+    throw new Error('Failed to delete history entry')
+  }
 }
 
 export async function migrateGuestHistory(

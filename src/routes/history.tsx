@@ -3,7 +3,15 @@ import { useEffect, useReducer, useState } from 'react'
 import { AuthHeader } from '../components/AuthHeader'
 import { RecipeCard } from '../components/RecipeCard'
 import { authClient } from '../lib/auth-client'
-import { fetchHistory } from '../lib/history-api'
+import {
+  deleteGuestHistoryEntry,
+  loadGuestHistory,
+} from '../lib/guest-history'
+import {
+  HISTORY_LIMIT_DISCLAIMER,
+  MAX_HISTORY_ENTRIES,
+} from '../lib/history-limits'
+import { deleteHistoryEntry, fetchHistory } from '../lib/history-api'
 import { useGuestMigration } from '../hooks/useGuestMigration'
 import type { HistoryEntry } from '../types/recipe'
 
@@ -21,6 +29,7 @@ type HistoryAction =
   | { type: 'loadStart' }
   | { type: 'loadSuccess'; entries: HistoryEntry[] }
   | { type: 'loadError'; message: string }
+  | { type: 'deleteEntry'; id: string }
 
 const initialHistoryState: HistoryState = {
   entries: [],
@@ -36,6 +45,11 @@ function historyReducer(state: HistoryState, action: HistoryAction): HistoryStat
       return { entries: action.entries, isLoading: false, error: null }
     case 'loadError':
       return { ...state, isLoading: false, error: action.message }
+    case 'deleteEntry':
+      return {
+        ...state,
+        entries: state.entries.filter((entry) => entry.id !== action.id),
+      }
     default:
       return state
   }
@@ -55,12 +69,15 @@ function HistoryPage() {
     initialHistoryState,
   )
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   async function loadHistory() {
     dispatch({ type: 'loadStart' })
 
     try {
-      const data = await fetchHistory()
+      const data = session?.user
+        ? await fetchHistory()
+        : loadGuestHistory()
       dispatch({ type: 'loadSuccess', entries: data })
     } catch (err) {
       dispatch({
@@ -77,14 +94,34 @@ function HistoryPage() {
 
   useEffect(() => {
     if (isPending) return
-
-    if (!session?.user) {
-      dispatch({ type: 'loadSuccess', entries: [] })
-      return
-    }
-
     void loadHistory()
   }, [isPending, session?.user])
+
+  async function handleDelete(id: string) {
+    setDeletingId(id)
+
+    try {
+      if (session?.user) {
+        await deleteHistoryEntry(id)
+      } else {
+        deleteGuestHistoryEntry(id)
+      }
+
+      if (expandedId === id) {
+        setExpandedId(null)
+      }
+
+      dispatch({ type: 'deleteEntry', id })
+    } catch (err) {
+      dispatch({
+        type: 'loadError',
+        message:
+          err instanceof Error ? err.message : 'Failed to delete history entry',
+      })
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   return (
     <div className="app">
@@ -97,7 +134,8 @@ function HistoryPage() {
           </div>
           <h1>Recipe history</h1>
           <p className="app-header__subtitle">
-            Every batch you've generated, kept when you're signed in.
+            Up to {MAX_HISTORY_ENTRIES} saved batches
+            {session?.user ? ' when you are signed in' : ' stored on this device'}.
           </p>
         </div>
       </header>
@@ -105,11 +143,22 @@ function HistoryPage() {
       <main className="app-main app-main--single">
         <section className="panel">
           <div className="results-header">
-            <h2>Past generations</h2>
+            <h2>
+              Past generations
+              {!isLoading && !error && (
+                <span className="history-slots">
+                  {entries.length} of {MAX_HISTORY_ENTRIES}
+                </span>
+              )}
+            </h2>
             <Link to="/" className="btn btn-secondary btn-sm">
               Back to pantry
             </Link>
           </div>
+
+          <p className="history-disclaimer" role="note">
+            {HISTORY_LIMIT_DISCLAIMER}
+          </p>
 
           {isPending && (
             <div className="status-message status-message--loading">
@@ -121,26 +170,26 @@ function HistoryPage() {
           {!isPending && !session?.user && (
             <div className="status-message">
               <p>
-                Sign in to view your recipe history across devices. Guest recipes
-                are saved locally until you create an account.
+                Showing generations saved on this device. Sign in to sync them
+                across browsers.
               </p>
             </div>
           )}
 
-          {session?.user && isLoading && (
+          {!isPending && isLoading && (
             <div className="status-message status-message--loading">
               <div className="spinner" aria-hidden="true" />
               <p>Loading your history…</p>
             </div>
           )}
 
-          {session?.user && error && (
+          {!isPending && error && (
             <div className="status-message status-message--error" role="alert">
               <p>{error}</p>
             </div>
           )}
 
-          {session?.user && !isLoading && !error && entries.length === 0 && (
+          {!isPending && !isLoading && !error && entries.length === 0 && (
             <div className="status-message">
               <p>
                 No saved generations yet. Generate recipes on the home page to
@@ -152,26 +201,38 @@ function HistoryPage() {
           <div className="history-list">
             {entries.map((entry) => {
               const isExpanded = expandedId === entry.id
+              const isDeleting = deletingId === entry.id
 
               return (
                 <article key={entry.id} className="history-item">
-                  <button
-                    type="button"
-                    className="history-item__toggle"
-                    onClick={() =>
-                      setExpandedId(isExpanded ? null : entry.id)
-                    }
-                    aria-expanded={isExpanded}
-                  >
-                    <div>
-                      <strong>{formatDate(entry.createdAt)}</strong>
-                      <p className="history-item__summary">
-                        {entry.recipes.length} recipes ·{' '}
-                        {entry.request.ingredients.join(', ')}
-                      </p>
-                    </div>
-                    <span>{isExpanded ? 'Hide' : 'Show'}</span>
-                  </button>
+                  <div className="history-item__header">
+                    <button
+                      type="button"
+                      className="history-item__toggle"
+                      onClick={() =>
+                        setExpandedId(isExpanded ? null : entry.id)
+                      }
+                      aria-expanded={isExpanded}
+                    >
+                      <div>
+                        <strong>{formatDate(entry.createdAt)}</strong>
+                        <p className="history-item__summary">
+                          {entry.recipes.length} recipes ·{' '}
+                          {entry.request.ingredients.join(', ')}
+                        </p>
+                      </div>
+                      <span>{isExpanded ? 'Hide' : 'Show'}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm history-item__delete"
+                      onClick={() => void handleDelete(entry.id)}
+                      disabled={isDeleting}
+                      aria-label={`Delete generation from ${formatDate(entry.createdAt)}`}
+                    >
+                      {isDeleting ? 'Deleting…' : 'Delete'}
+                    </button>
+                  </div>
 
                   {isExpanded && (
                     <div className="recipe-grid history-item__recipes">

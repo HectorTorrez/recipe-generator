@@ -1,6 +1,12 @@
 import { createAuth } from './auth'
 import { buildRecipePrompt } from './prompt'
-import { listHistory, migrateGuestHistory, saveHistoryEntry } from './history'
+import {
+  HistoryLimitReachedError,
+  deleteHistoryEntry,
+  listHistory,
+  migrateGuestHistory,
+  saveHistoryEntry,
+} from './history'
 import { recipesToMarkdown } from './recipeMarkdown'
 import { getSession, requireUserId } from './session'
 import type { GuestHistoryEntry } from './history'
@@ -343,14 +349,52 @@ export default {
         return jsonResponse({ error: 'Invalid history payload' }, request, env, 400)
       }
 
-      const entry = await saveHistoryEntry(
+      try {
+        const entry = await saveHistoryEntry(
+          env.DB,
+          userId,
+          payload.request,
+          payload.recipes,
+        )
+
+        return jsonResponse({ entry }, request, env, 201)
+      } catch (err) {
+        if (err instanceof HistoryLimitReachedError) {
+          return jsonResponse(
+            {
+              error:
+                'History limit reached. Delete an existing entry before saving a new one.',
+            },
+            request,
+            env,
+            409,
+          )
+        }
+
+        throw err
+      }
+    }
+
+    const historyDeleteMatch = url.pathname.match(/^\/api\/history\/([^/]+)$/)
+    if (request.method === 'DELETE' && historyDeleteMatch) {
+      const session = await getSession(request, env)
+      const userId = requireUserId(session)
+
+      if (!userId) {
+        return jsonResponse({ error: 'Unauthorized' }, request, env, 401)
+      }
+
+      const deleted = await deleteHistoryEntry(
         env.DB,
         userId,
-        payload.request,
-        payload.recipes,
+        historyDeleteMatch[1],
       )
 
-      return jsonResponse({ entry }, request, env, 201)
+      if (!deleted) {
+        return jsonResponse({ error: 'History entry not found' }, request, env, 404)
+      }
+
+      return jsonResponse({ ok: true }, request, env)
     }
 
     if (request.method === 'POST' && url.pathname === '/api/history/migrate') {

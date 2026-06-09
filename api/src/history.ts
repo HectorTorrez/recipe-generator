@@ -1,5 +1,14 @@
 import type { Recipe, RecipeRequest } from './types'
 
+export const MAX_HISTORY_ENTRIES = 3
+
+export class HistoryLimitReachedError extends Error {
+  constructor() {
+    super('History limit reached')
+    this.name = 'HistoryLimitReachedError'
+  }
+}
+
 export type HistoryEntry = {
   id: string
   createdAt: number
@@ -32,6 +41,20 @@ function parseHistoryRow(row: Record<string, unknown>): HistoryEntry | null {
   }
 }
 
+export async function countHistoryEntries(
+  db: D1Database,
+  userId: string,
+): Promise<number> {
+  const result = await db
+    .prepare(
+      `SELECT COUNT(*) AS count FROM recipe_generations WHERE user_id = ?`,
+    )
+    .bind(userId)
+    .first<{ count: number }>()
+
+  return result?.count ?? 0
+}
+
 export async function listHistory(
   db: D1Database,
   userId: string,
@@ -41,9 +64,10 @@ export async function listHistory(
       `SELECT id, created_at, request_json, recipes_json
        FROM recipe_generations
        WHERE user_id = ?
-       ORDER BY created_at DESC`,
+       ORDER BY created_at DESC
+       LIMIT ?`,
     )
-    .bind(userId)
+    .bind(userId, MAX_HISTORY_ENTRIES)
     .all<Record<string, unknown>>()
 
   return (result.results ?? [])
@@ -58,6 +82,11 @@ export async function saveHistoryEntry(
   recipes: Recipe[],
   sourceId?: string,
 ): Promise<HistoryEntry> {
+  const count = await countHistoryEntries(db, userId)
+  if (count >= MAX_HISTORY_ENTRIES) {
+    throw new HistoryLimitReachedError()
+  }
+
   const id = crypto.randomUUID()
   const createdAt = Date.now()
 
@@ -80,6 +109,22 @@ export async function saveHistoryEntry(
   return { id, createdAt, request, recipes }
 }
 
+export async function deleteHistoryEntry(
+  db: D1Database,
+  userId: string,
+  entryId: string,
+): Promise<boolean> {
+  const result = await db
+    .prepare(
+      `DELETE FROM recipe_generations
+       WHERE id = ? AND user_id = ?`,
+    )
+    .bind(entryId, userId)
+    .run()
+
+  return (result.meta.changes ?? 0) > 0
+}
+
 export async function migrateGuestHistory(
   db: D1Database,
   userId: string,
@@ -88,7 +133,11 @@ export async function migrateGuestHistory(
   let imported = 0
   let skipped = 0
 
-  for (const entry of entries) {
+  const sortedEntries = [...entries].sort(
+    (a, b) => b.createdAt - a.createdAt,
+  )
+
+  for (const entry of sortedEntries) {
     if (!entry.id || !Array.isArray(entry.recipes) || entry.recipes.length === 0) {
       skipped += 1
       continue
@@ -103,6 +152,12 @@ export async function migrateGuestHistory(
       .first<{ id: string }>()
 
     if (existing) {
+      skipped += 1
+      continue
+    }
+
+    const count = await countHistoryEntries(db, userId)
+    if (count >= MAX_HISTORY_ENTRIES) {
       skipped += 1
       continue
     }

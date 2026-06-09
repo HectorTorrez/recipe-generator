@@ -1,3 +1,4 @@
+import { MAX_HISTORY_ENTRIES } from './history-limits'
 import type { GuestHistoryEntry, Recipe, RecipeRequest } from '../types/recipe'
 
 const GUEST_HISTORY_KEY = 'recipe-generator-guest-history'
@@ -29,10 +30,20 @@ export function saveGuestHistory(entries: GuestHistoryEntry[]): void {
   localStorage.setItem(GUEST_HISTORY_KEY, JSON.stringify(entries))
 }
 
+export function isGuestHistoryFull(): boolean {
+  return loadGuestHistory().length >= MAX_HISTORY_ENTRIES
+}
+
 export function appendGuestHistoryEntry(
   request: RecipeRequest,
   recipes: Recipe[],
-): GuestHistoryEntry[] {
+): { saved: boolean; entries: GuestHistoryEntry[] } {
+  const current = loadGuestHistory()
+
+  if (current.length >= MAX_HISTORY_ENTRIES) {
+    return { saved: false, entries: current }
+  }
+
   const entry: GuestHistoryEntry = {
     id: crypto.randomUUID(),
     createdAt: Date.now(),
@@ -40,7 +51,13 @@ export function appendGuestHistoryEntry(
     recipes,
   }
 
-  const next = [entry, ...loadGuestHistory()]
+  const next = [entry, ...current]
+  saveGuestHistory(next)
+  return { saved: true, entries: next }
+}
+
+export function deleteGuestHistoryEntry(id: string): GuestHistoryEntry[] {
+  const next = loadGuestHistory().filter((entry) => entry.id !== id)
   saveGuestHistory(next)
   return next
 }
