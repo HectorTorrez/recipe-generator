@@ -13,13 +13,8 @@
 		{
 			"binding": "DB",
 			"database_name": "recipe-generator",
-			"database_id": "00000000-0000-0000-0000-000000000001",
+			"database_id": "5079f670-70bc-4274-bc03-e346577e51d1",
 			"migrations_dir": "migrations"
-		},
-		{
-			"binding": "recipe_generator",
-			"database_name": "recipe-generator",
-			"database_id": "5079f670-70bc-4274-bc03-e346577e51d1"
 		}
 	],
 	"vars": {
