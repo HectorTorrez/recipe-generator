@@ -8,6 +8,10 @@ import {
   saveHistoryEntry,
 } from './history'
 import { recipesToMarkdown } from './recipeMarkdown'
+import {
+  RateLimitExceededError,
+  enforceGenerationRateLimit,
+} from './rate-limit'
 import { getSession, requireUserId } from './session'
 import type { GuestHistoryEntry } from './history'
 import type { RecipeRequest, RecipeResponse } from './types'
@@ -442,6 +446,32 @@ export default {
           env,
           400,
         )
+      }
+
+      const session = await getSession(request, env)
+      const userId = requireUserId(session)
+
+      try {
+        await enforceGenerationRateLimit(env.DB, request, userId)
+      } catch (err) {
+        if (err instanceof RateLimitExceededError) {
+          return Response.json(
+            {
+              error: err.message,
+              code: 'RATE_LIMIT_EXCEEDED',
+              retryAfterSeconds: err.retryAfterSeconds,
+            },
+            {
+              status: 429,
+              headers: {
+                ...getCorsHeaders(request, env),
+                'Retry-After': String(err.retryAfterSeconds),
+              },
+            },
+          )
+        }
+
+        throw err
       }
 
       try {

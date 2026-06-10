@@ -6,6 +6,12 @@ type RecipeCardProps = {
   recipe: Recipe
 }
 
+function getTimeTier(minutes: number): 'quick' | 'medium' | 'long' {
+  if (minutes <= 20) return 'quick'
+  if (minutes <= 45) return 'medium'
+  return 'long'
+}
+
 export function RecipeCard({ recipe }: RecipeCardProps) {
   const [copied, setCopied] = useState(false)
 
@@ -20,7 +26,10 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
   }
 
   return (
-    <article className="recipe-card">
+    <article
+      className="recipe-card"
+      data-time-tier={getTimeTier(recipe.estimatedTimeMinutes)}
+    >
       <header className="recipe-card__header">
         <div className="recipe-card__heading">
           <h3 className="recipe-card__title">{recipe.name}</h3>
@@ -32,7 +41,7 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
         </div>
         <button
           type="button"
-          className="btn btn-secondary btn-sm recipe-card__copy"
+          className="btn btn-ghost btn-sm recipe-card__copy"
           onClick={handleCopy}
         >
           {copied ? 'Copied' : 'Copy'}

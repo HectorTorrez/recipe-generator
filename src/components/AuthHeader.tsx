@@ -15,18 +15,18 @@ export function AuthHeader() {
 
   return (
     <>
-      <div className="auth-header">
+      <nav className="auth-header" aria-label="Account">
         {isPending ? (
-          <span className="auth-header__status">Loading account…</span>
+          <span className="auth-header__status">Loading…</span>
         ) : session?.user ? (
           <div className="auth-header__signed-in">
             <span className="auth-header__user">{session.user.email}</span>
-            <Link to="/history" className="btn btn-secondary btn-sm">
+            <Link to="/history" className="btn btn-ghost btn-sm">
               History
             </Link>
             <button
               type="button"
-              className="btn btn-secondary btn-sm"
+              className="btn btn-ghost btn-sm"
               onClick={handleSignOut}
             >
               Sign out
@@ -34,24 +34,24 @@ export function AuthHeader() {
           </div>
         ) : (
           <div className="auth-header__guest">
-            <span className="auth-header__badge">Guest mode</span>
+            <span className="auth-header__badge">Guest</span>
             <button
               type="button"
-              className="btn btn-secondary btn-sm"
+              className="btn btn-ghost btn-sm"
               onClick={() => setModalMode('sign-in')}
             >
               Sign in
             </button>
             <button
               type="button"
-              className="btn btn-primary btn-sm"
+              className="btn btn-accent btn-sm"
               onClick={() => setModalMode('sign-up')}
             >
               Sign up
             </button>
           </div>
         )}
-      </div>
+      </nav>
 
       {modalMode && (
         <AuthModal

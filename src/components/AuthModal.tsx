@@ -1,6 +1,7 @@
 import { useReducer } from 'react'
 import { authClient } from '../lib/auth-client'
 import { extractBearerToken, setBearerToken } from '../lib/auth-token'
+import { MAX_HISTORY_ENTRIES } from '../lib/history-limits'
 
 type AuthModalProps = {
   mode: 'sign-in' | 'sign-up'
@@ -120,9 +121,9 @@ export function AuthModal({ mode, onClose, onSwitchMode }: AuthModalProps) {
         </header>
 
         <p className="auth-modal__hint">
-          Sign in to save up to 3 generations and access them from any browser.
-          To add a new one when your history is full, delete an existing entry
-          first — this helps us keep the site free.
+          Sign in to save up to {MAX_HISTORY_ENTRIES} generations and access
+          them from any browser. When your history is full, delete an existing
+          entry before saving a new one.
         </p>
 
         <form className="auth-form" onSubmit={handleSubmit}>

@@ -1,6 +1,6 @@
 import type { Recipe, RecipeRequest } from './types'
 
-export const MAX_HISTORY_ENTRIES = 3
+export const MAX_HISTORY_ENTRIES = 10
 
 export class HistoryLimitReachedError extends Error {
   constructor() {

@@ -125,33 +125,43 @@ function HistoryPage() {
 
   return (
     <div className="app">
-      <header className="app-header">
-        <div className="app-header__content">
+      <header className="top-bar">
+        <div className="top-bar__inner">
+          <Link to="/" className="top-bar__brand">
+            <span className="top-bar__logo" aria-hidden="true">
+              ◐
+            </span>
+            Pantry
+          </Link>
           <AuthHeader />
-          <div className="app-header__brand">
-            <span className="app-header__mark">Pantry</span>
-            <p className="app-header__eyebrow">Saved generations</p>
-          </div>
-          <h1>Recipe history</h1>
-          <p className="app-header__subtitle">
+        </div>
+      </header>
+
+      <section className="hero hero--compact">
+        <div className="hero__inner">
+          <p className="hero__eyebrow">Saved generations</p>
+          <h1 className="hero__title">Recipe history</h1>
+          <p className="hero__lead">
             Up to {MAX_HISTORY_ENTRIES} saved batches
             {session?.user ? ' when you are signed in' : ' stored on this device'}.
           </p>
         </div>
-      </header>
+      </section>
 
-      <main className="app-main app-main--single">
-        <section className="panel">
+      <main className="workspace workspace--single">
+        <section className="panel panel--wide">
           <div className="results-header">
-            <h2>
-              Past generations
-              {!isLoading && !error && (
-                <span className="history-slots">
-                  {entries.length} of {MAX_HISTORY_ENTRIES}
-                </span>
-              )}
-            </h2>
-            <Link to="/" className="btn btn-secondary btn-sm">
+            <div>
+              <h2 className="panel__title">
+                Past generations
+                {!isLoading && !error && (
+                  <span className="history-slots">
+                    {entries.length} of {MAX_HISTORY_ENTRIES}
+                  </span>
+                )}
+              </h2>
+            </div>
+            <Link to="/" className="btn btn-ghost btn-sm">
               Back to pantry
             </Link>
           </div>
@@ -190,10 +200,13 @@ function HistoryPage() {
           )}
 
           {!isPending && !isLoading && !error && entries.length === 0 && (
-            <div className="status-message">
-              <p>
-                No saved generations yet. Generate recipes on the home page to
-                build your history.
+            <div className="empty-recipes">
+              <p className="empty-recipes__title">No saved generations yet</p>
+              <p className="empty-recipes__text">
+                Generate recipes on the home page to build your history.{' '}
+                <Link to="/" className="inline-link">
+                  Go to pantry
+                </Link>
               </p>
             </div>
           )}
@@ -221,11 +234,13 @@ function HistoryPage() {
                           {entry.request.ingredients.join(', ')}
                         </p>
                       </div>
-                      <span>{isExpanded ? 'Hide' : 'Show'}</span>
+                      <span className="history-item__chevron">
+                        {isExpanded ? '▲' : '▼'}
+                      </span>
                     </button>
                     <button
                       type="button"
-                      className="btn btn-secondary btn-sm history-item__delete"
+                      className="btn btn-ghost btn-sm history-item__delete"
                       onClick={() => void handleDelete(entry.id)}
                       disabled={isDeleting}
                       aria-label={`Delete generation from ${formatDate(entry.createdAt)}`}
