@@ -37,7 +37,7 @@ import { validateRequest } from './validate'
 import type { GuestHistoryEntry } from './history'
 import type { FavoriteEntry, Recipe, RecipeRequest, RecipeResponse } from './types'
 
-const MODEL = '@cf/meta/llama-3.1-8b-instruct'
+const MODEL = '@cf/meta/llama-3.1-8b-instruct-fast'
 const VISION_MODEL = '@cf/llava-hf/llava-1.5-7b-hf'
 
 type Env = {
@@ -183,6 +183,38 @@ function validateFavoritesMigrateBody(body: unknown): FavoriteEntry[] | null {
   return valid
 }
 
+function extractAiText(aiResult: unknown): string {
+  if (typeof aiResult === 'string') {
+    return aiResult.trim()
+  }
+
+  if (!aiResult || typeof aiResult !== 'object') {
+    return ''
+  }
+
+  const output = aiResult as Record<string, unknown>
+  const choices = output.choices as
+    | Array<{ message?: { content?: string | null } }>
+    | undefined
+  const choiceContent = choices?.[0]?.message?.content
+  if (choiceContent != null && String(choiceContent).length > 0) {
+    return String(choiceContent).trim()
+  }
+
+  if ('response' in output) {
+    const response = output.response
+    if (typeof response === 'object' && response !== null) {
+      return JSON.stringify(response)
+    }
+    if (response == null) {
+      return ''
+    }
+    return String(response).trim()
+  }
+
+  return ''
+}
+
 async function runAi(
   env: Env,
   prompt: string,
@@ -200,10 +232,7 @@ async function runAi(
     temperature: 0.7,
   })
 
-  const text =
-    typeof aiResult === 'string'
-      ? aiResult
-      : ((aiResult as { response?: string }).response ?? '')
+  const text = extractAiText(aiResult)
 
   if (!text) throw new Error('Empty AI response')
   return text
@@ -754,10 +783,7 @@ export default {
           max_tokens: 512,
         })
 
-        const text =
-          typeof aiResult === 'string'
-            ? aiResult
-            : ((aiResult as { response?: string }).response ?? '')
+        const text = extractAiText(aiResult)
 
         const ingredients = parseVisionResponse(text)
         logEvent('vision_success', {

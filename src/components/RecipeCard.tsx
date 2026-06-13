@@ -214,12 +214,15 @@ export function RecipeCard({
 
         <div className="recipe-card__body">
           {pantryUsed.length > 0 && (
-            <div className="recipe-card__section">
+            <div className="recipe-card__section recipe-card__section--pantry">
               <h4>From your pantry</h4>
-              <ul>
+              <ul className="recipe-card__ingredient-list">
                 {pantryUsed.map((ingredient) => (
-                  <li key={ingredient} className="recipe-card__ingredient--pantry">
-                    {ingredient}
+                  <li
+                    key={ingredient}
+                    className="recipe-card__ingredient recipe-card__ingredient--pantry"
+                  >
+                    <span className="recipe-card__ingredient-name">{ingredient}</span>
                   </li>
                 ))}
               </ul>
@@ -227,22 +230,27 @@ export function RecipeCard({
           )}
 
           {missing.length > 0 && (
-            <div className="recipe-card__section">
+            <div className="recipe-card__section recipe-card__section--missing">
               <h4>You will need</h4>
-              <ul>
+              <ul className="recipe-card__ingredient-list">
                 {missing.map((ingredient) => (
-                  <li key={ingredient} className="recipe-card__ingredient--missing">
-                    {ingredient}
-                    {showActions && pantryIngredients.length > 0 && (
-                      <button
-                        type="button"
-                        className="btn btn-ghost btn-sm"
-                        disabled={loadingSubstitute === ingredient}
-                        onClick={() => void handleSuggestSwap(ingredient)}
-                      >
-                        {loadingSubstitute === ingredient ? '…' : 'Suggest swap'}
-                      </button>
-                    )}
+                  <li
+                    key={ingredient}
+                    className="recipe-card__ingredient recipe-card__ingredient--missing"
+                  >
+                    <div className="recipe-card__ingredient-row">
+                      <span className="recipe-card__ingredient-name">{ingredient}</span>
+                      {showActions && pantryIngredients.length > 0 && (
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-sm recipe-card__swap-btn"
+                          disabled={loadingSubstitute === ingredient}
+                          onClick={() => void handleSuggestSwap(ingredient)}
+                        >
+                          {loadingSubstitute === ingredient ? '…' : 'Suggest swap'}
+                        </button>
+                      )}
+                    </div>
                     {substitutions[ingredient] && (
                       <p className="recipe-card__substitution">
                         {substitutions[ingredient]}
@@ -252,13 +260,15 @@ export function RecipeCard({
                 ))}
               </ul>
               {showActions && (
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm"
-                  onClick={handleAddToShoppingList}
-                >
-                  Add to shopping list
-                </button>
+                <div className="recipe-card__section-actions">
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={handleAddToShoppingList}
+                  >
+                    Add to shopping list
+                  </button>
+                </div>
               )}
             </div>
           )}

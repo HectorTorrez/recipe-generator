@@ -66,7 +66,7 @@ See [ROADMAP.md](ROADMAP.md) for the full feature checklist and API contracts.
 
 ## AI model choice
 
-**Model:** `@cf/meta/llama-3.1-8b-instruct` (Cloudflare Workers AI)
+**Model:** `@cf/meta/llama-3.1-8b-instruct-fast` (Cloudflare Workers AI)
 **Vision model:** `@cf/llava-hf/llava-1.5-7b-hf` (photo ingredient detection)
 
 **Why this model:**
