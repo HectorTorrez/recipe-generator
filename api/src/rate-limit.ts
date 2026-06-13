@@ -1,6 +1,7 @@
 // Keep in sync with src/lib/generation-limits.ts
 export const GUEST_GENERATIONS_PER_HOUR = 10
 export const USER_GENERATIONS_PER_DAY = 30
+export const IMAGE_SCANS_PER_HOUR = 5
 
 export class RateLimitExceededError extends Error {
   readonly retryAfterSeconds: number
@@ -20,7 +21,7 @@ function getUserWindowKey(now = new Date()): string {
   return `day:${now.toISOString().slice(0, 10)}`
 }
 
-function getClientIp(request: Request): string {
+export function getClientIp(request: Request): string {
   return (
     request.headers.get('CF-Connecting-IP') ??
     request.headers.get('X-Forwarded-For')?.split(',')[0]?.trim() ??
@@ -127,6 +128,75 @@ export async function enforceGenerationRateLimit(
   if (!allowed) {
     throw new RateLimitExceededError(
       `You've reached the limit of ${GUEST_GENERATIONS_PER_HOUR} generations per hour. Sign in for a higher limit, or try again later.`,
+      secondsUntilNextHour(now),
+    )
+  }
+}
+
+async function getUsage(
+  db: D1Database,
+  bucketKey: string,
+  windowKey: string,
+): Promise<number> {
+  const row = await db
+    .prepare(
+      `SELECT count FROM generation_rate_limits
+       WHERE bucket_key = ? AND window_key = ?`,
+    )
+    .bind(bucketKey, windowKey)
+    .first<{ count: number }>()
+
+  return row?.count ?? 0
+}
+
+export async function getQuota(
+  db: D1Database,
+  request: Request,
+  userId: string | null,
+): Promise<{
+  used: number
+  limit: number
+  resetsAt: number
+  bucket: 'guest' | 'user'
+}> {
+  const now = new Date()
+
+  if (userId) {
+    const windowKey = getUserWindowKey(now)
+    const used = await getUsage(db, `user:${userId}`, windowKey)
+    return {
+      used,
+      limit: USER_GENERATIONS_PER_DAY,
+      resetsAt: now.getTime() + secondsUntilNextDay(now) * 1000,
+      bucket: 'user',
+    }
+  }
+
+  const windowKey = getGuestWindowKey(now)
+  const used = await getUsage(db, `ip:${getClientIp(request)}`, windowKey)
+  return {
+    used,
+    limit: GUEST_GENERATIONS_PER_HOUR,
+    resetsAt: now.getTime() + secondsUntilNextHour(now) * 1000,
+    bucket: 'guest',
+  }
+}
+
+export async function enforceImageRateLimit(
+  db: D1Database,
+  request: Request,
+): Promise<void> {
+  const now = new Date()
+  const allowed = await tryConsume(
+    db,
+    `image:${getClientIp(request)}`,
+    getGuestWindowKey(now),
+    IMAGE_SCANS_PER_HOUR,
+  )
+
+  if (!allowed) {
+    throw new RateLimitExceededError(
+      `You've reached the limit of ${IMAGE_SCANS_PER_HOUR} image scans per hour. Try again later.`,
       secondsUntilNextHour(now),
     )
   }

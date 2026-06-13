@@ -133,7 +133,7 @@ export async function migrateGuestHistory(
   let imported = 0
   let skipped = 0
 
-  const sortedEntries = [...entries].sort(
+  const sortedEntries = entries.toSorted(
     (a, b) => b.createdAt - a.createdAt,
   )
 

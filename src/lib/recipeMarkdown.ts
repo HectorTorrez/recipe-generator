@@ -1,4 +1,4 @@
-import type { Recipe } from '../types/recipe'
+import type { Recipe } from './types'
 
 export function recipeToMarkdown(recipe: Recipe): string {
   const lines: string[] = [
@@ -13,10 +13,21 @@ export function recipeToMarkdown(recipe: Recipe): string {
     '',
     '## Ingredients',
     ...recipe.ingredients.map((ingredient) => `- ${ingredient}`),
+  ]
+
+  if (recipe.missingIngredients && recipe.missingIngredients.length > 0) {
+    lines.push(
+      '',
+      '## You will need',
+      ...recipe.missingIngredients.map((ingredient) => `- ${ingredient}`),
+    )
+  }
+
+  lines.push(
     '',
     '## Instructions',
     ...recipe.instructions.map((step, index) => `${index + 1}. ${step}`),
-  ]
+  )
 
   return lines.join('\n')
 }

@@ -1,8 +1,9 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
-import { useEffect, useReducer, useState } from 'react'
+import { useCallback, useEffect, useReducer, useState } from 'react'
 import { AuthHeader } from '../components/AuthHeader'
 import { RecipeCard } from '../components/RecipeCard'
 import { authClient } from '../lib/auth-client'
+import { createShareLink } from '../lib/api'
 import {
   deleteGuestHistoryEntry,
   loadGuestHistory,
@@ -13,6 +14,7 @@ import {
 } from '../lib/history-limits'
 import { deleteHistoryEntry, fetchHistory } from '../lib/history-api'
 import { useGuestMigration } from '../hooks/useGuestMigration'
+import { defaultPreferences, updatePreferences } from '../lib/storage'
 import type { HistoryEntry } from '../types/recipe'
 
 export const Route = createFileRoute('/history')({
@@ -62,6 +64,21 @@ function formatDate(timestamp: number): string {
   })
 }
 
+function applyHistoryPreferences(entry: HistoryEntry) {
+  updatePreferences({
+    ...defaultPreferences,
+    ingredients: entry.request.ingredients,
+    cookingTimeMinutes: entry.request.cookingTimeMinutes,
+    servings: entry.request.servings ?? defaultPreferences.servings,
+    difficulty: entry.request.difficulty ?? defaultPreferences.difficulty,
+    dietaryPreferences: entry.request.dietaryPreferences ?? [],
+    equipment: entry.request.equipment ?? defaultPreferences.equipment,
+    allergies: entry.request.allergies ?? [],
+    cuisine: entry.request.cuisine,
+    mealType: entry.request.mealType,
+  })
+}
+
 function HistoryPage() {
   const { data: session, isPending } = authClient.useSession()
   const [{ entries, isLoading, error }, dispatch] = useReducer(
@@ -70,8 +87,10 @@ function HistoryPage() {
   )
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [sharingId, setSharingId] = useState<string | null>(null)
+  const [shareUrl, setShareUrl] = useState<string | null>(null)
 
-  async function loadHistory() {
+  const loadHistory = useCallback(async () => {
     dispatch({ type: 'loadStart' })
 
     try {
@@ -86,7 +105,7 @@ function HistoryPage() {
           err instanceof Error ? err.message : 'Failed to load history',
       })
     }
-  }
+  }, [session?.user])
 
   useGuestMigration(() => {
     void loadHistory()
@@ -95,7 +114,7 @@ function HistoryPage() {
   useEffect(() => {
     if (isPending) return
     void loadHistory()
-  }, [isPending, session?.user])
+  }, [isPending, loadHistory])
 
   async function handleDelete(id: string) {
     setDeletingId(id)
@@ -123,9 +142,28 @@ function HistoryPage() {
     }
   }
 
+  async function handleShare(id: string) {
+    if (!session?.user) return
+    setSharingId(id)
+    setShareUrl(null)
+    try {
+      const { shareId } = await createShareLink(id)
+      const url = `${window.location.origin}/share/${shareId}`
+      setShareUrl(url)
+      await navigator.clipboard.writeText(url)
+    } catch (err) {
+      dispatch({
+        type: 'loadError',
+        message: err instanceof Error ? err.message : 'Failed to create share link',
+      })
+    } finally {
+      setSharingId(null)
+    }
+  }
+
   return (
     <div className="app">
-      <header className="top-bar">
+      <header className="top-bar no-print">
         <div className="top-bar__inner">
           <Link to="/" className="top-bar__brand">
             <span className="top-bar__logo" aria-hidden="true">
@@ -137,7 +175,7 @@ function HistoryPage() {
         </div>
       </header>
 
-      <section className="hero hero--compact">
+      <section className="hero hero--compact no-print">
         <div className="hero__inner">
           <p className="hero__eyebrow">Saved generations</p>
           <h1 className="hero__title">Recipe history</h1>
@@ -161,14 +199,20 @@ function HistoryPage() {
                 )}
               </h2>
             </div>
-            <Link to="/" className="btn btn-ghost btn-sm">
+            <Link to="/" className="btn btn-ghost btn-sm no-print">
               Back to pantry
             </Link>
           </div>
 
-          <p className="history-disclaimer" role="note">
+          <p className="history-disclaimer no-print" role="note">
             {HISTORY_LIMIT_DISCLAIMER}
           </p>
+
+          {shareUrl && (
+            <output className="status-message">
+              <p>Share link copied: {shareUrl}</p>
+            </output>
+          )}
 
           {isPending && (
             <div className="status-message status-message--loading">
@@ -238,15 +282,44 @@ function HistoryPage() {
                         {isExpanded ? '▲' : '▼'}
                       </span>
                     </button>
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-sm history-item__delete"
-                      onClick={() => void handleDelete(entry.id)}
-                      disabled={isDeleting}
-                      aria-label={`Delete generation from ${formatDate(entry.createdAt)}`}
-                    >
-                      {isDeleting ? 'Deleting…' : 'Delete'}
-                    </button>
+                    <div className="history-item__actions">
+                      <Link
+                        to="/"
+                        search={{ regenerate: '1' }}
+                        className="btn btn-ghost btn-sm no-print"
+                        onClick={() => applyHistoryPreferences(entry)}
+                      >
+                        Use again
+                      </Link>
+                      {session?.user && (
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-sm no-print"
+                          disabled={sharingId === entry.id}
+                          onClick={() => void handleShare(entry.id)}
+                        >
+                          {sharingId === entry.id ? 'Sharing…' : 'Share'}
+                        </button>
+                      )}
+                      {isExpanded && (
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-sm no-print"
+                          onClick={() => window.print()}
+                        >
+                          Print
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm history-item__delete no-print"
+                        onClick={() => void handleDelete(entry.id)}
+                        disabled={isDeleting}
+                        aria-label={`Delete generation from ${formatDate(entry.createdAt)}`}
+                      >
+                        {isDeleting ? 'Deleting…' : 'Delete'}
+                      </button>
+                    </div>
                   </div>
 
                   {isExpanded && (
@@ -255,6 +328,9 @@ function HistoryPage() {
                         <RecipeCard
                           key={`${entry.id}-${recipe.name}-${index}`}
                           recipe={recipe}
+                          request={entry.request}
+                          pantryIngredients={entry.request.ingredients}
+                          showActions={false}
                         />
                       ))}
                     </div>

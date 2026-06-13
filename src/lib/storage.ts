@@ -1,4 +1,4 @@
-import type { Recipe, UserPreferences } from '../types/recipe'
+import type { UserPreferences } from '../types/recipe'
 
 const STORAGE_KEY = 'recipe-generator-preferences'
 const RECIPES_STORAGE_KEY = 'recipe-generator-last-recipes'
@@ -6,9 +6,11 @@ const RECIPES_STORAGE_KEY = 'recipe-generator-last-recipes'
 export const defaultPreferences: UserPreferences = {
   ingredients: [],
   cookingTimeMinutes: 30,
+  servings: 2,
   difficulty: 'beginner',
   dietaryPreferences: [],
   equipment: ['stove'],
+  allergies: [],
 }
 
 export function loadPreferences(): UserPreferences {
@@ -27,6 +29,11 @@ export function loadPreferences(): UserPreferences {
         ? parsed.dietaryPreferences
         : [],
       equipment: Array.isArray(parsed.equipment) ? parsed.equipment : ['stove'],
+      allergies: Array.isArray(parsed.allergies) ? parsed.allergies : [],
+      servings:
+        typeof parsed.servings === 'number' && parsed.servings > 0
+          ? parsed.servings
+          : defaultPreferences.servings,
     }
   } catch {
     return defaultPreferences
@@ -38,7 +45,7 @@ export function savePreferences(preferences: UserPreferences): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(preferences))
 }
 
-export function loadRecipes(): Recipe[] {
+export function loadRecipes(): import('../types/recipe').Recipe[] {
   if (typeof window === 'undefined') return []
 
   try {
@@ -49,28 +56,28 @@ export function loadRecipes(): Recipe[] {
     if (!Array.isArray(parsed)) return []
 
     return parsed.filter(
-      (recipe): recipe is Recipe =>
+      (recipe): recipe is import('../types/recipe').Recipe =>
         !!recipe &&
         typeof recipe === 'object' &&
-        typeof (recipe as Recipe).name === 'string',
+        typeof (recipe as import('../types/recipe').Recipe).name === 'string',
     )
   } catch {
     return []
   }
 }
 
-export function saveRecipes(recipes: Recipe[]): void {
+export function saveRecipes(recipes: import('../types/recipe').Recipe[]): void {
   if (typeof window === 'undefined') return
   localStorage.setItem(RECIPES_STORAGE_KEY, JSON.stringify(recipes))
 }
 
-const EMPTY_RECIPES: Recipe[] = []
+const EMPTY_RECIPES: import('../types/recipe').Recipe[] = []
 
 const preferenceListeners = new Set<() => void>()
 const recipeListeners = new Set<() => void>()
 
 let preferencesSnapshot: UserPreferences = defaultPreferences
-let recipesSnapshot: Recipe[] = EMPTY_RECIPES
+let recipesSnapshot: import('../types/recipe').Recipe[] = EMPTY_RECIPES
 
 if (typeof window !== 'undefined') {
   preferencesSnapshot = loadPreferences()
@@ -96,11 +103,11 @@ export function getServerPreferencesSnapshot(): UserPreferences {
   return defaultPreferences
 }
 
-export function getRecipesSnapshot(): Recipe[] {
+export function getRecipesSnapshot(): import('../types/recipe').Recipe[] {
   return recipesSnapshot
 }
 
-export function getServerRecipesSnapshot(): Recipe[] {
+export function getServerRecipesSnapshot(): import('../types/recipe').Recipe[] {
   return EMPTY_RECIPES
 }
 
@@ -110,8 +117,29 @@ export function updatePreferences(preferences: UserPreferences): void {
   preferenceListeners.forEach((listener) => listener())
 }
 
-export function updateRecipes(recipes: Recipe[]): void {
+export function updateRecipes(recipes: import('../types/recipe').Recipe[]): void {
   saveRecipes(recipes)
   recipesSnapshot = recipes.length === 0 ? EMPTY_RECIPES : recipes
   recipeListeners.forEach((listener) => listener())
+}
+
+export function requestFromPreferences(
+  preferences: UserPreferences,
+): import('../types/recipe').RecipeRequest {
+  return {
+    ingredients: preferences.ingredients,
+    cookingTimeMinutes: preferences.cookingTimeMinutes,
+    servings: preferences.servings,
+    difficulty: preferences.difficulty,
+    dietaryPreferences:
+      preferences.dietaryPreferences.length > 0
+        ? preferences.dietaryPreferences
+        : undefined,
+    equipment:
+      preferences.equipment.length > 0 ? preferences.equipment : undefined,
+    allergies:
+      preferences.allergies.length > 0 ? preferences.allergies : undefined,
+    cuisine: preferences.cuisine,
+    mealType: preferences.mealType,
+  }
 }

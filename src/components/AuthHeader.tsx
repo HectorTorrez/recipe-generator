@@ -4,18 +4,24 @@ import { authClient } from '../lib/auth-client'
 import { clearBearerToken } from '../lib/auth-token'
 import { AuthModal } from './AuthModal'
 
+async function signOutUser() {
+  await authClient.signOut()
+  clearBearerToken()
+}
+
 export function AuthHeader() {
   const { data: session, isPending } = authClient.useSession()
   const [modalMode, setModalMode] = useState<'sign-in' | 'sign-up' | null>(null)
 
-  async function handleSignOut() {
-    await authClient.signOut()
-    clearBearerToken()
-  }
-
   return (
     <>
       <nav className="auth-header" aria-label="Account">
+        <Link to="/favorites" className="btn btn-ghost btn-sm">
+          Favorites
+        </Link>
+        <Link to="/shopping-list" className="btn btn-ghost btn-sm">
+          Shopping
+        </Link>
         {isPending ? (
           <span className="auth-header__status">Loading…</span>
         ) : session?.user ? (
@@ -27,7 +33,7 @@ export function AuthHeader() {
             <button
               type="button"
               className="btn btn-ghost btn-sm"
-              onClick={handleSignOut}
+              onClick={() => void signOutUser()}
             >
               Sign out
             </button>

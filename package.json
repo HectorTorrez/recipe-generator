@@ -8,13 +8,13 @@
   "scripts": {
     "dev": "vite dev --port 3000",
     "dev:api": "pnpm --filter @recipe-generator/api dev",
-    "predev:api": "rm -rf .wrangler/deploy",
-    "predev:all": "rm -rf .wrangler/deploy",
+    "predev:api": "rm -rf .wrangler/deploy && (lsof -ti :8787 | xargs kill 2>/dev/null || true)",
+    "predev:all": "rm -rf .wrangler/deploy && (lsof -ti :8787 -ti :3000 | xargs kill 2>/dev/null || true)",
     "dev:all": "pnpm --parallel --filter recipe-generator-web --filter @recipe-generator/api dev",
     "generate-routes": "tsr generate",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "vitest run",
+    "test": "vitest run --config vitest.config.ts",
     "deploy:web": "pnpm run build && pnpm exec wrangler deploy",
     "deploy:api": "pnpm --filter @recipe-generator/api run deploy",
     "deploy:all": "pnpm run deploy:api && pnpm run deploy:web",
@@ -23,8 +23,8 @@
   "dependencies": {
     "better-auth": "^1.2.0",
     "@cloudflare/vite-plugin": "^1.26.0",
-    "@tanstack/react-router": "latest",
-    "@tanstack/react-start": "latest",
+    "@tanstack/react-router": "^1.170.15",
+    "@tanstack/react-start": "^1.168.24",
     "@tanstack/router-plugin": "^1.132.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"

@@ -1,6 +1,12 @@
 import { useEffect, useRef } from 'react'
 import { authClient } from '../lib/auth-client'
 import {
+  clearGuestFavorites,
+  hasGuestFavorites,
+  loadGuestFavorites,
+} from '../lib/favorites'
+import { migrateGuestFavorites } from '../lib/api'
+import {
   clearGuestHistory,
   hasGuestHistory,
   loadGuestHistory,
@@ -13,18 +19,28 @@ export function useGuestMigration(onMigrated?: () => void) {
 
   useEffect(() => {
     if (isPending || !session?.user || migratedRef.current) return
-    if (!hasGuestHistory()) return
+    if (!hasGuestHistory() && !hasGuestFavorites()) return
 
     migratedRef.current = true
 
     void (async () => {
       try {
-        const entries = loadGuestHistory()
+        if (hasGuestHistory()) {
+          const entries = loadGuestHistory()
+          if (entries.length > 0) {
+            await migrateGuestHistory(entries)
+            clearGuestHistory()
+          }
+        }
 
-        if (entries.length === 0) return
+        if (hasGuestFavorites()) {
+          const favorites = loadGuestFavorites()
+          if (favorites.length > 0) {
+            await migrateGuestFavorites(favorites)
+            clearGuestFavorites()
+          }
+        }
 
-        await migrateGuestHistory(entries)
-        clearGuestHistory()
         onMigrated?.()
       } catch {
         migratedRef.current = false

@@ -46,16 +46,28 @@ The challenge requires a clear client/server split. TanStack Start handles the U
 
 ## Features
 
-- **Ingredient input** — add/remove ingredients with local persistence
+- **Ingredient input** — add/remove ingredients, bulk paste, and photo scan
 - **Time filter** — 10, 20, 30, 45, or 60+ minutes
-- **Optional filters** — difficulty, dietary preferences, kitchen equipment
+- **Optional filters** — difficulty, dietary preferences, allergies, cuisine, meal type, servings, kitchen equipment
 - **AI recommendations** — 3 recipes with name, description, time, ingredients, steps, and rationale
-- **Missing ingredients** — highlights extras you'd need to buy
-- **Local persistence** — preferences and last recipe results saved to `localStorage` across reloads (client-side hydration after SSR)
+- **Missing ingredients** — highlights extras you'd need to buy; add to shopping list
+- **Streaming** — recipes appear as they are generated (NDJSON stream)
+- **Single-recipe actions** — regenerate, refine, substitution suggestions
+- **Cook mode** — step-by-step fullscreen cooking view with timers
+- **Recipe comparison** — side-by-side time, missing count, and pantry overlap
+- **Favorites** — star individual recipes (guest localStorage or signed-in D1)
+- **Shopping list** — aggregated missing ingredients with checkboxes
+- **History** — last 10 generations; use again, share links, print
+- **Auth** — email/password and Google OAuth; sync preferences and history across devices
+- **Generation quota** — live remaining count for guests (10/hr) and users (30/day)
+- **Local persistence** — preferences and last recipe results saved to `localStorage` across reloads
+
+See [ROADMAP.md](ROADMAP.md) for the full feature checklist and API contracts.
 
 ## AI model choice
 
 **Model:** `@cf/meta/llama-3.1-8b-instruct` (Cloudflare Workers AI)
+**Vision model:** `@cf/llava-hf/llava-1.5-7b-hf` (photo ingredient detection)
 
 **Why this model:**
 
@@ -116,6 +128,16 @@ For local dev with the Vite proxy, you can leave `VITE_API_URL` unset.
 
 **Production builds** require `VITE_API_URL` at build time (not just in `wrangler.jsonc` vars). This is set in [`.env.production`](.env.production) and baked into the client bundle when you run `pnpm run build`.
 
+**API worker secrets** (set via `wrangler secret put` or `api/wrangler.jsonc` vars):
+
+| Variable | Purpose |
+|----------|---------|
+| `BETTER_AUTH_SECRET` | Auth session signing |
+| `BETTER_AUTH_URL` | API base URL for auth callbacks |
+| `ALLOWED_ORIGINS` | Comma-separated CORS origins |
+| `GOOGLE_CLIENT_ID` | Google OAuth (optional) |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth (optional) |
+
 ### Deploy
 
 1. Deploy the API worker first:
@@ -172,6 +194,22 @@ Returns worker status and model name.
 }
 ```
 
+### Additional endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/quota` | Generation quota (`used`, `limit`, `resetsAt`) |
+| `POST` | `/api/recipes/stream` | NDJSON stream of recipes |
+| `POST` | `/api/recipes/single` | Regenerate or refine one recipe |
+| `POST` | `/api/recipes/substitute` | Suggest ingredient swap |
+| `POST` | `/api/ingredients/from-image` | Vision-based ingredient detection |
+| `GET/POST/DELETE` | `/api/favorites` | Favorited recipes (auth) |
+| `GET/PUT` | `/api/preferences` | Sync pantry preferences (auth) |
+| `POST` | `/api/history/:id/share` | Create public share link (auth) |
+| `GET` | `/api/share/:id` | Read shared generation (public) |
+
+The API emits structured JSON logs for generation success/failure, rate limits, and parse errors.
+
 ## Design decisions
 
 1. **Plain CSS over utility frameworks** — per challenge requirements, styling is hand-written for full control without Tailwind/MUI.
@@ -198,3 +236,4 @@ Returns worker status and model name.
 | `pnpm deploy:api` | Deploy API worker |
 | `pnpm deploy:web` | Build and deploy frontend |
 | `pnpm deploy:all` | Deploy both API and frontend |
+| `pnpm test` | Run Vitest unit tests |

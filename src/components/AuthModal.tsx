@@ -1,4 +1,4 @@
-import { useReducer } from 'react'
+import { useEffect, useReducer, useRef } from 'react'
 import { authClient } from '../lib/auth-client'
 import { extractBearerToken, setBearerToken } from '../lib/auth-token'
 import { MAX_HISTORY_ENTRIES } from '../lib/history-limits'
@@ -47,7 +47,21 @@ function formReducer(state: FormState, action: FormAction): FormState {
 }
 
 export function AuthModal({ mode, onClose, onSwitchMode }: AuthModalProps) {
+  const dialogRef = useRef<HTMLDialogElement>(null)
   const [form, dispatch] = useReducer(formReducer, initialFormState)
+
+  useEffect(() => {
+    const dialog = dialogRef.current
+    if (!dialog) return
+    if (!dialog.open) dialog.showModal()
+    return () => {
+      if (dialog.open) dialog.close()
+    }
+  }, [mode])
+
+  function dismissModal() {
+    onClose()
+  }
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
@@ -88,7 +102,7 @@ export function AuthModal({ mode, onClose, onSwitchMode }: AuthModalProps) {
       }
 
       dispatch({ type: 'submitSuccess' })
-      onClose()
+      dismissModal()
     } catch (err) {
       dispatch({
         type: 'submitError',
@@ -98,14 +112,12 @@ export function AuthModal({ mode, onClose, onSwitchMode }: AuthModalProps) {
   }
 
   return (
-    <div className="auth-modal-backdrop" onClick={onClose} role="presentation">
-      <div
-        className="auth-modal"
-        onClick={(event) => event.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="auth-modal-title"
-      >
+    <dialog
+      ref={dialogRef}
+      className="auth-modal"
+      aria-labelledby="auth-modal-title"
+      onCancel={dismissModal}
+    >
         <header className="auth-modal__header">
           <h2 id="auth-modal-title">
             {mode === 'sign-in' ? 'Sign in to sync history' : 'Create an account'}
@@ -113,7 +125,7 @@ export function AuthModal({ mode, onClose, onSwitchMode }: AuthModalProps) {
           <button
             type="button"
             className="auth-modal__close"
-            onClick={onClose}
+            onClick={dismissModal}
             aria-label="Close"
           >
             ×
@@ -201,6 +213,24 @@ export function AuthModal({ mode, onClose, onSwitchMode }: AuthModalProps) {
           </button>
         </form>
 
+        <div className="auth-modal__divider">
+          <span>or</span>
+        </div>
+
+        <button
+          type="button"
+          className="btn btn-secondary auth-modal__google"
+          disabled={form.isSubmitting}
+          onClick={() =>
+            void authClient.signIn.social({
+              provider: 'google',
+              callbackURL: window.location.origin,
+            })
+          }
+        >
+          Continue with Google
+        </button>
+
         <p className="auth-modal__switch">
           {mode === 'sign-in' ? (
             <>
@@ -226,7 +256,6 @@ export function AuthModal({ mode, onClose, onSwitchMode }: AuthModalProps) {
             </>
           )}
         </p>
-      </div>
-    </div>
+    </dialog>
   )
 }
