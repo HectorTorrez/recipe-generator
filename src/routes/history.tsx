@@ -2,6 +2,7 @@ import { Link, createFileRoute } from '@tanstack/react-router'
 import { useCallback, useEffect, useReducer, useState } from 'react'
 import { AuthHeader } from '../components/AuthHeader'
 import { RecipeCard } from '../components/RecipeCard'
+import { Toast } from '../components/Toast'
 import { authClient } from '../lib/auth-client'
 import { createShareLink } from '../lib/api'
 import {
@@ -88,7 +89,7 @@ function HistoryPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [sharingId, setSharingId] = useState<string | null>(null)
-  const [shareUrl, setShareUrl] = useState<string | null>(null)
+  const [shareCopied, setShareCopied] = useState(false)
 
   const loadHistory = useCallback(async () => {
     dispatch({ type: 'loadStart' })
@@ -145,12 +146,12 @@ function HistoryPage() {
   async function handleShare(id: string) {
     if (!session?.user) return
     setSharingId(id)
-    setShareUrl(null)
+    setShareCopied(false)
     try {
       const { shareId } = await createShareLink(id)
       const url = `${window.location.origin}/share/${shareId}`
-      setShareUrl(url)
       await navigator.clipboard.writeText(url)
+      setShareCopied(true)
     } catch (err) {
       dispatch({
         type: 'loadError',
@@ -207,12 +208,6 @@ function HistoryPage() {
           <p className="history-disclaimer no-print" role="note">
             {HISTORY_LIMIT_DISCLAIMER}
           </p>
-
-          {shareUrl && (
-            <output className="status-message">
-              <p>Share link copied: {shareUrl}</p>
-            </output>
-          )}
 
           {isPending && (
             <div className="status-message status-message--loading">
@@ -341,6 +336,13 @@ function HistoryPage() {
           </div>
         </section>
       </main>
+
+      {shareCopied && (
+        <Toast
+          message="Link copied to clipboard"
+          onDismiss={() => setShareCopied(false)}
+        />
+      )}
     </div>
   )
 }
