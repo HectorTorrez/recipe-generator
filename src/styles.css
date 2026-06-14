@@ -1397,7 +1397,11 @@ a {
   margin-top: 0.75rem;
 }
 
-.cook-mode {
+.cook-mode:not([open]) {
+  display: none;
+}
+
+.cook-mode[open] {
   position: fixed;
   inset: 0;
   z-index: 200;

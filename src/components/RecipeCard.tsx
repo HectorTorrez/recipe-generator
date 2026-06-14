@@ -15,6 +15,7 @@ import {
 import { recipeToMarkdown } from '../lib/recipeMarkdown'
 import { addShoppingItems } from '../lib/shopping-list'
 import { CookMode } from './CookMode'
+import { Toast } from './Toast'
 import type { Recipe, RecipeRequest } from '../types/recipe'
 
 type RecipeCardProps = {
@@ -64,6 +65,7 @@ export function RecipeCard({
   const [refinement, setRefinement] = useState('')
   const [substitutions, setSubstitutions] = useState<Record<string, string>>({})
   const [loadingSubstitute, setLoadingSubstitute] = useState<string | null>(null)
+  const [toastMessage, setToastMessage] = useState<string | null>(null)
 
   const guestIsFavorite =
     !session?.user && isGuestFavorite(recipe.name)
@@ -104,10 +106,12 @@ export function RecipeCard({
         await deleteFavoriteApi(favoriteIdRef.current)
         setIsFavorite(false)
         favoriteIdRef.current = null
+        setToastMessage('Removed from favorites')
       } else {
         const entry = await saveFavoriteApi(recipe, request)
         setIsFavorite(true)
         favoriteIdRef.current = entry.id
+        setToastMessage('Added to favorites')
       }
       return
     }
@@ -116,9 +120,11 @@ export function RecipeCard({
       const guestFav = loadGuestFavorites().find((e) => e.recipe.name === recipe.name)
       if (guestFav) removeGuestFavorite(guestFav.id)
       setIsFavorite(false)
+      setToastMessage('Removed from favorites')
     } else {
       addGuestFavorite(recipe, request)
       setIsFavorite(true)
+      setToastMessage('Added to favorites')
     }
   }
 
@@ -379,6 +385,13 @@ export function RecipeCard({
             {isRefining ? 'Refining…' : 'Apply refinement'}
           </button>
       </dialog>
+
+      {toastMessage && (
+        <Toast
+          message={toastMessage}
+          onDismiss={() => setToastMessage(null)}
+        />
+      )}
     </>
   )
 }

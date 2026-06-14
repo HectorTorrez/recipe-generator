@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Recipe } from '../types/recipe'
 
 type CookModeProps = {
@@ -19,22 +19,22 @@ export function CookMode({ recipe, onClose }: CookModeProps) {
     Math.round(recipe.estimatedTimeMinutes / Math.max(totalSteps, 1)),
   )
 
-  const handleClose = useEffectEvent(onClose)
-
   useEffect(() => {
     const dialog = dialogRef.current
-    dialog?.showModal()
-    return () => dialog?.close()
+    if (!dialog) return
+    if (!dialog.open) dialog.showModal()
+    return () => {
+      if (dialog.open) dialog.close()
+    }
   }, [])
+
+  function dismiss() {
+    onClose()
+  }
 
   useEffect(() => {
     function handleKey(event: KeyboardEvent) {
       const currentStep = stepIndexRef.current
-
-      if (event.key === 'Escape') {
-        handleClose()
-        return
-      }
 
       if (event.key === 'ArrowRight' && currentStep < totalSteps - 1) {
         setStepIndex(currentStep + 1)
@@ -64,14 +64,14 @@ export function CookMode({ recipe, onClose }: CookModeProps) {
       ref={dialogRef}
       className="cook-mode"
       aria-label={`Cooking ${recipe.name}`}
-      onClose={onClose}
+      onCancel={dismiss}
     >
       <header className="cook-mode__header">
         <div>
           <p className="cook-mode__eyebrow">Cook mode</p>
           <h2 className="cook-mode__title">{recipe.name}</h2>
         </div>
-        <button type="button" className="btn btn-ghost btn-sm" onClick={onClose}>
+        <button type="button" className="btn btn-ghost btn-sm" onClick={dismiss}>
           Exit
         </button>
       </header>
