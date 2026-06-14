@@ -1,10 +1,11 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
-import { useSyncExternalStore } from 'react'
+import { useEffect, useSyncExternalStore } from 'react'
 import { AuthHeader } from '../components/AuthHeader'
 import {
   clearCheckedItems,
   getServerShoppingListSnapshot,
   getShoppingListSnapshot,
+  reloadShoppingList,
   removeShoppingItem,
   subscribeShoppingList,
   toggleShoppingItem,
@@ -20,6 +21,10 @@ function ShoppingListPage() {
     getShoppingListSnapshot,
     getServerShoppingListSnapshot,
   )
+
+  useEffect(() => {
+    reloadShoppingList()
+  }, [])
 
   return (
     <div className="app">

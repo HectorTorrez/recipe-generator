@@ -80,9 +80,13 @@ export function RecipeCard({
     refineDialogRef.current?.close()
   }
 
+  const pantryMissing = recipe.ingredients.filter(
+    (ing) => !isFromPantry(ing, pantryIngredients),
+  )
   const missing =
-    recipe.missingIngredients ??
-    recipe.ingredients.filter((ing) => !isFromPantry(ing, pantryIngredients))
+    recipe.missingIngredients && recipe.missingIngredients.length > 0
+      ? recipe.missingIngredients
+      : pantryMissing
 
   const pantryUsed = recipe.ingredients.filter((ing) =>
     isFromPantry(ing, pantryIngredients),
@@ -129,8 +133,17 @@ export function RecipeCard({
   }
 
   function handleAddToShoppingList() {
-    if (missing.length > 0) {
-      addShoppingItems(missing)
+    if (missing.length === 0) return
+
+    const { addedCount } = addShoppingItems(missing)
+    if (addedCount > 0) {
+      setToastMessage(
+        addedCount === 1
+          ? 'Added 1 item to shopping list'
+          : `Added ${addedCount} items to shopping list`,
+      )
+    } else {
+      setToastMessage('Already on your shopping list')
     }
   }
 

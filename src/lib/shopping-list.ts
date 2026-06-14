@@ -22,6 +22,12 @@ export function getServerShoppingListSnapshot(): ShoppingListItem[] {
   return []
 }
 
+export function reloadShoppingList(): void {
+  if (typeof window === 'undefined') return
+  snapshot = loadShoppingList()
+  notify()
+}
+
 export function loadShoppingList(): ShoppingListItem[] {
   if (typeof window === 'undefined') return []
 
@@ -57,7 +63,10 @@ function persist(items: ShoppingListItem[]): ShoppingListItem[] {
   return items
 }
 
-export function addShoppingItems(names: string[]): ShoppingListItem[] {
+export function addShoppingItems(names: string[]): {
+  items: ShoppingListItem[]
+  addedCount: number
+} {
   const current = loadShoppingList()
   const existing = new Set(current.map((item) => item.name.toLowerCase()))
 
@@ -68,7 +77,10 @@ export function addShoppingItems(names: string[]): ShoppingListItem[] {
     return [{ id: crypto.randomUUID(), name: trimmed, checked: false }]
   })
 
-  return persist([...current, ...newItems])
+  return {
+    items: persist([...current, ...newItems]),
+    addedCount: newItems.length,
+  }
 }
 
 export function toggleShoppingItem(id: string): ShoppingListItem[] {
